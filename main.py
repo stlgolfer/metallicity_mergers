@@ -47,6 +47,20 @@ z_index = 0
 print('the redshift weights per system at z = ', redshifts[z_index], ' are given by' )
 w_z_index =w_per_z_per_system[:,z_index]
 
+# may not be able to directly mask from dcomask to get metallicities
+# fdata['BSE_System_Parameters']['Metallicity@ZAMS(1)'] has many more elements than BSE_DCO
+# we need to get the seeds from dcomask
+# then we get the metallicity from system_params in the spots where the seed is equal
+dcoseeds = fdata[rate_key]['SEED'][()]
+m1zams = fdata['BSE_System_Parameters']['Metallicity@ZAMS(1)'][()]
+search = np.isin(fdata['BSE_System_Parameters']['SEED'], dcoseeds) # find the location of each dco in the larger colleciton
+m1zams = m1zams[search]
+plt.figure()
+plt.hist(m1zams, bins=100, weights=w_z_index)
+plt.xlabel('Metallicity1 at ZAMS at z=0')
+plt.ylabel(r'BHNS merger rate [simulation weighted]')
+plt.show()
+
 # taking from the example, we also want to be able to get the "primary black hole mass" histogram,
 # which from the examples looks like we want to get the more massive one of the two
 # will need to get the SEEDs from the DCOs that were redshifted, then select each mass
@@ -55,19 +69,17 @@ mass1 = fdata['BSE_Double_Compact_Objects']['Mass(1)'][()][dcomask]
 mass2 = fdata['BSE_Double_Compact_Objects']['Mass(2)'][()][dcomask]
 M_moreMassive = np.maximum(mass1, mass2)
 
-# may not be able to directly mask from dcomask to get metallicities
-# fdata['BSE_System_Parameters']['Metallicity@ZAMS(1)'] has many more elements than BSE_DCO
 plt.figure()
-_, bins = np.histogram(M_moreMassive, bins=100)
+normal, bins = np.histogram(M_moreMassive, bins=100, density=True)
 plt.hist(M_moreMassive, bins=100, density=True, weights=w_z_index)
 # now do kde as well
-kde = stats.gaussian_kde(M_moreMassive, weights=w_z_index) # this will work with unweighted samples
-# but now we want to do with weights
+kde = stats.gaussian_kde(M_moreMassive, weights=w_z_index)
 
 # plt.plot(bins[:-1], counts)
 plt.plot(bins[:-1], kde(bins[:-1]))
 plt.xlabel('BH mass [Msun] ')
 plt.ylabel(r'BBH merger rate at $z =%s [\rm{Gpc}^{-3} \rm{yr}^{-1}]$'%np.round(redshifts[z_index],3), fontsize=12)
+# plt.ylabel(r'Normalized Probability')
 plt.title('BH masses of BH-BH merger population at redshift %s'%np.round(redshifts[z_index],3), fontsize=12)
 plt.show()
 
