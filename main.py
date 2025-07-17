@@ -1,0 +1,82 @@
+# idea here is to use adam's code and produce the merger rate
+# this is basically already done in Floor's code
+
+import h5py as h5
+import numpy as np
+import os
+import matplotlib.pyplot as plt
+import pandas as pd
+import string
+from compas_python_utils.cosmic_integration import FastCosmicIntegration
+from scipy import stats
+
+# to obtain properties of ALL binaries simulated, do this:
+path = './Boesky_sims.h5'
+
+
+print('excecuting this code might take a little while (~few min) \n')
+fdata = h5.File(path)
+# shows the different files within the hdf5 folder 
+
+print('the available datasets for this file are:')
+print(fdata.keys())
+# hopefully there are some DCOs in the file to work with
+# print(fdata['BSE_Double_Compact_Objects'].keys())
+
+rate_key = 'Rates_mu00.035_muz-0.23_alpha0.0_sigma00.39_sigmaz0.0'
+print(fdata[rate_key].keys())
+redshifts                 = fdata[rate_key]['redshifts'][()] # Redshifts at which the rates were calculated
+merger_rate_z0_per_system = fdata[rate_key]['merger_rate_z0'][()] # detection rate for O3 sensitivity 
+total_rate_z0 = np.sum(merger_rate_z0_per_system) # this is the rate for redshift 0, you can get the rate for all redshifts by summing over merger_rate
+
+# print some interesting information about the various merger rates per redshift
+print(total_rate_z0, '[Gpc^-3 yr^_1]')
+
+w_0 = fdata[rate_key]['merger_rate_z0'][...].squeeze()
+
+print(w_0)
+redshifts = fdata[rate_key]['redshifts'][...].squeeze()
+print('available redshifts are: ', redshifts, ' this gives %s options'%len(redshifts))
+
+w_per_z_per_system = fdata[rate_key]['merger_rate'][...].squeeze()
+
+print(np.shape(w_per_z_per_system))
+
+z_index = 0
+
+print('the redshift weights per system at z = ', redshifts[z_index], ' are given by' )
+w_z_index =w_per_z_per_system[:,z_index]
+
+# taking from the example, we also want to be able to get the "primary black hole mass" histogram,
+# which from the examples looks like we want to get the more massive one of the two
+# will need to get the SEEDs from the DCOs that were redshifted, then select each mass
+dcomask = fdata[rate_key]['DCOmask'][()] # to be able to get seed list
+mass1 = fdata['BSE_Double_Compact_Objects']['Mass(1)'][()][dcomask]
+mass2 = fdata['BSE_Double_Compact_Objects']['Mass(2)'][()][dcomask]
+M_moreMassive = np.maximum(mass1, mass2)
+
+# may not be able to directly mask from dcomask to get metallicities
+# fdata['BSE_System_Parameters']['Metallicity@ZAMS(1)'] has many more elements than BSE_DCO
+plt.figure()
+_, bins = np.histogram(M_moreMassive, bins=100)
+plt.hist(M_moreMassive, bins=100, density=True, weights=w_z_index)
+# now do kde as well
+kde = stats.gaussian_kde(M_moreMassive, weights=w_z_index) # this will work with unweighted samples
+# but now we want to do with weights
+
+# plt.plot(bins[:-1], counts)
+plt.plot(bins[:-1], kde(bins[:-1]))
+plt.xlabel('BH mass [Msun] ')
+plt.ylabel(r'BBH merger rate at $z =%s [\rm{Gpc}^{-3} \rm{yr}^{-1}]$'%np.round(redshifts[z_index],3), fontsize=12)
+plt.title('BH masses of BH-BH merger population at redshift %s'%np.round(redshifts[z_index],3), fontsize=12)
+plt.show()
+
+plt.plot(redshifts[:-1], np.sum(w_per_z_per_system, axis=0)) # change "2" if you actually ran the weights for more redshifts (here its only for 0 and 1, ie beyond  >2)
+plt.xlabel('redshift z')
+plt.ylabel(r'BHBH merger rate at $z =%s [\rm{Gpc}^{-3} \rm{yr}^{-1}]$'%np.round(redshifts[z_index],3), fontsize=12)
+plt.title('BBH merger rate', fontsize=20)
+plt.show()
+
+fdata.close()
+# then run the cosmic integrator
+# !python3 FastCosmicIntegration_large_files.py  --mu0 0.035 --muz -0.23 --sigma0 0.39 --sigmaz 0.0 --alpha 0.0 --weight mixture_weight --zstep 0.5 --sens O3 --m1min 10. --aSF 0.01 --bSF 2.77 --cSF 2.9 --dSF 4.7
