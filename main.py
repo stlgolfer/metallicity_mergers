@@ -67,7 +67,15 @@ z_index = 0
 print('the redshift weights per system at z = ', redshifts[z_index], ' are given by' )
 w_z_index =w_per_z_per_system[:,z_index]
 # want to sum up to a certain redshift. For now, sum up to redshift 1
-w_z_summed = np.sum(w_per_z_per_system[:,:20], axis=1) # here we crudely sum over all redshift weights, but
+up_to_redshift = 1
+r_index = np.where(redshifts == up_to_redshift)
+if len(r_index) == 0:
+    raise "Redshift not found..consider changing your FastCosmicIntegration settings"
+r_index = r_index[0][0] # redshifts are monotone increasing so first result is ok
+w_z_summed = np.sum(
+    w_per_z_per_system[:,:r_index],
+    axis=1
+) # here we crudely sum over all redshift weights, but
 # eventually we'd like to be able to sum up to a certain redshift
 print(w_z_index.shape)
 
@@ -95,16 +103,17 @@ plt.figure()
 # plt.plot(bins[:-1], m1zamskde(bins[:-1]))
 
 # create a subroutine that iterates through each star 1 type for now
-def plot_stellar_type_at_zams(type_index):
-    bins=1000
+def plot_stellar_type_at_zams(type_index, include_histo=False):
+    bins=50
     stellar_search = np.argwhere(stellar_types_1==type_index)
-    # plt.hist(
-    #     m1zams[stellar_search],
-    #     bins=bins,
-    #     weights=w_z_summed[stellar_search],
-    #     label=f'(1) Type {stellar_types_dictionary[type_index]}', histtype='step',
-    #     density=True
-    # )
+    if include_histo:
+        plt.hist(
+            m1zams[stellar_search],
+            bins=bins,
+            weights=w_z_summed[stellar_search],
+            label=f'(1) Type {stellar_types_dictionary[type_index]}', histtype='step',
+            density=True
+        )
 
     _, bins = np.histogram(m1zams[stellar_search], bins=bins)
     # print(m1zams[stellar_search].shape)
@@ -113,14 +122,14 @@ def plot_stellar_type_at_zams(type_index):
         m1zams[stellar_search].flatten(),
         weights=w_z_summed[stellar_search].flatten()
     )
-    plt.plot(bins[:-1], m1zamskde(bins[:-1]), label=f'(1) Type {stellar_types_dictionary[type_index]}')
+    plt.plot(bins[:-1]/0.012, m1zamskde(bins[:-1]), label=f'(1) Type {stellar_types_dictionary[type_index]}')
 # plt.hist(m1zams[np.argwhere(stellar_types_1==16)], bins=100, weights=w_z_index[stellar_search], legend='(1) Type 1')
 for t in set(stellar_types_1):
     plot_stellar_type_at_zams(t)
 # plot_stellar_type_at_zams(list(set(stellar_types_1))[0])
-plt.title('Number of systems/year [Density] summed to z=0')
-plt.xlabel('Metallicity1 at ZAMS') #TODO: check units against COMPAS simulation. Is this actually Z/Z0?
-plt.ylabel(r'BHNS merger rate [simulation weighted]')
+plt.title(f'Number of DCO systems/year summed up to z={up_to_redshift}')
+plt.xlabel('Metallicity1 at ZAMS Z/Z0') #TODO: check units against COMPAS simulation. Looks like this is just Z
+plt.ylabel(r'Number of DCO systems/year [simulation weighted]')
 plt.xscale('log')
 plt.legend()
 plt.show()
