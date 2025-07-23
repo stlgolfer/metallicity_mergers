@@ -66,6 +66,9 @@ z_index = 0
 
 print('the redshift weights per system at z = ', redshifts[z_index], ' are given by' )
 w_z_index =w_per_z_per_system[:,z_index]
+w_z_summed = np.sum(w_per_z_per_system, axis=1) # here we crudely sum over all redshift weights, but
+# eventually we'd like to be able to sum up to a certain redshift
+print(w_z_index.shape)
 
 # may not be able to directly mask from dcomask to get metallicities
 # fdata['BSE_System_Parameters']['Metallicity@ZAMS(1)'] has many more elements than BSE_DCO
@@ -89,23 +92,37 @@ plt.figure()
 # _, bins = np.histogram(m1zams, bins=100, density=True)
 # m1zamskde = stats.gaussian_kde(m1zams, weights=w_z_index)
 # plt.plot(bins[:-1], m1zamskde(bins[:-1]))
+
 # create a subroutine that iterates through each star 1 type for now
 def plot_stellar_type_at_zams(type_index):
+    bins=100
     stellar_search = np.argwhere(stellar_types_1==type_index)
-    plt.hist(
-        m1zams[stellar_search],
-        bins=50,
-        weights=w_z_index[stellar_search],
-        label=f'(1) Type {stellar_types_dictionary[type_index]}', histtype='step',
+    # plt.hist(
+    #     m1zams[stellar_search],
+    #     bins=bins,
+    #     weights=w_z_summed[stellar_search],
+    #     label=f'(1) Type {stellar_types_dictionary[type_index]}', histtype='step',
+    #     density=True
+    # )
+
+    _, bins = np.histogram(m1zams[stellar_search], bins=bins)
+    # print(m1zams[stellar_search].shape)
+    # print(f'w_z_summed: {w_z_summed[stellar_search].flatten().shape}')
+    m1zamskde = stats.gaussian_kde(
+        m1zams[stellar_search].flatten(),
+        weights=w_z_summed[stellar_search].flatten()
     )
+    plt.plot(bins[:-1], m1zamskde(bins[:-1]), label=f'(1) Type {stellar_types_dictionary[type_index]}')
 # plt.hist(m1zams[np.argwhere(stellar_types_1==16)], bins=100, weights=w_z_index[stellar_search], legend='(1) Type 1')
 for t in set(stellar_types_1):
     plot_stellar_type_at_zams(t)
-plt.title('Merger Rate simulation weighted at z=0')
+# plot_stellar_type_at_zams(list(set(stellar_types_1))[0])
+plt.title('Number of systems/year [Density] summed to z=0')
 plt.xlabel('Metallicity1 at ZAMS')
 plt.ylabel(r'BHNS merger rate [simulation weighted]')
 plt.legend()
 plt.show()
+assert 0
 
 # taking from the example, we also want to be able to get the "primary black hole mass" histogram,
 # which from the examples looks like we want to get the more massive one of the two
