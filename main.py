@@ -76,7 +76,24 @@ print('the redshift weights per system at z = ', redshifts[z_index], ' are given
 # fdata['BSE_System_Parameters']['Metallicity@ZAMS(1)'] has many more elements than BSE_DCO
 # we need to get the seeds from dcomask
 # then we get the metallicity from system_params in the spots where the seed is equal
-dcoseeds = fdata[rate_key]['SEED'][()]
+
+#select BHBH seeds
+#  np.where((st1[()] == 13) & (st2[()]==13))[0].shape
+# np.where(fdata['BSE_Double_Compact_Objects']['Stellar_Type(2)'][dcomask][()] == 13)
+# ^^^^ the above will work since apparently fci doesn't use every dco system, so still have to mask even in dco
+# proof: np.isin(fdata['BSE_Double_Compact_Objects']['SEED'], fdata[rate_key]['SEED']) should be all true, but it's not
+# ahh it looks like it just pulling BHBH, make sure to set to 'ALL' for dco_type
+#TODO: actually, instead of writing code to select things after the fact, we can just re-run FCI and select the
+# object of interest
+
+# dcomask = fdata[rate_key]['DCOmask'][()]
+# fs1 = fdata['BSE_Double_Compact_Objects']['Stellar_Type(1)'][dcomask][()]
+# fs2 = fdata['BSE_Double_Compact_Objects']['Stellar_Type(2)'][dcomask][()] # final stellar type
+# object_select = np.where((fs1 == 14) & (fs2 == 14)) # look for BHBH. two ways for this to happen
+# so must have logical OR
+
+dcoseeds = fdata[rate_key]['SEED'][()] # instead of selecting all dcos, get the seeds that are BHBH
+
 m1zams = fdata['BSE_System_Parameters']['Metallicity@ZAMS(1)'][()]
 search = np.isin(fdata['BSE_System_Parameters']['SEED'], dcoseeds) # find the location of each dco in the larger colleciton
 m1zams = m1zams[search]
@@ -107,6 +124,9 @@ def plot_up_to_redshift(ax, detector: str):
     def plot_stellar_type_at_zams(type_index, include_histo=False):
         bins=1000
         stellar_search = np.argwhere(stellar_types_1==type_index)
+        if stellar_search.size <= 2:
+            print(f'Stellar type {stellar_types_dictionary[type_index]} has <=2 elements, so not painting')
+            return
         if include_histo:
             ax.hist(
                 m1zams[stellar_search],
@@ -179,3 +199,4 @@ fig.show()
 fdata.close()
 # then run the cosmic integrator
 # !python3 FastCosmicIntegration_large_files.py  --mu0 0.035 --muz -0.23 --sigma0 0.39 --sigmaz 0.0 --alpha 0.0 --weight mixture_weight --zstep 0.5 --sens O3 --m1min 10. --aSF 0.01 --bSF 2.77 --cSF 2.9 --dSF 4.7
+# python ~/Documents/Github/COMPAS/compas_python_utils/cosmic_integration/FastCosmicIntegration.py --path ./Boesky_sims.h5 --mu0 0.035 --muz -0.23 --sigma0 0.39 --sigmaz 0.0 --alpha 0.0 --weight mixture_weight --zstep 0.05 --sens O3 --m1min 10. --aSF 0.01 --bSF 2.77 --cSF 2.9 --dSF 4.7 --maxz 20 --maxzdet 20
