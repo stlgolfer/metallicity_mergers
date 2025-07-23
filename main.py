@@ -10,9 +10,29 @@ import string
 from compas_python_utils.cosmic_integration import FastCosmicIntegration
 from scipy import stats
 
+stellar_types_dictionary = ["Main_Sequence_<=_0.7",
+                 "Main_Sequence_>_0.7",
+                 "Hertzsprung_Gap",
+                 "First_Giant_Branch",
+                 "Core_Helium_Burning",
+                 "Early_Asymptotic_Giant_Branch",
+                 "Thermally_Pulsing_Asymptotic_Giant_Branch",
+                 "Naked_Helium_Star_MS" ,
+             "Naked_Helium_Star_Hertzsprung_Gap" ,
+    "Naked_Helium_Star_Giant_Branch" ,
+                            "Helium_White_Dwarf" ,
+                     "Carbon-Oxygen_White_Dwarf" ,
+                       "Oxygen-Neon_White_Dwarf" ,
+                                  "Neutron_Star" ,
+                                    "Black_Hole" ,
+                              "Massless_Remnant" ,
+                        "Chemically_Homogeneous" ,
+                                          "Star" ,
+                                   "Binary_Star" ,
+    "Not_a_Star!"]
+
 # to obtain properties of ALL binaries simulated, do this:
 path = './Boesky_sims.h5'
-
 
 print('excecuting this code might take a little while (~few min) \n')
 fdata = h5.File(path)
@@ -55,13 +75,36 @@ dcoseeds = fdata[rate_key]['SEED'][()]
 m1zams = fdata['BSE_System_Parameters']['Metallicity@ZAMS(1)'][()]
 search = np.isin(fdata['BSE_System_Parameters']['SEED'], dcoseeds) # find the location of each dco in the larger colleciton
 m1zams = m1zams[search]
+stellar_types_1 = fdata['BSE_System_Parameters']['Stellar_Type@ZAMS(1)'][()][search]
+stellar_types_2 = fdata['BSE_System_Parameters']['Stellar_Type@ZAMS(2)'][()][search]
+
+# print(np.argwhere(stellar_types_1 == 1))
+# print(set(stellar_types_1))
+# print(set(stellar_types_2))
+
 plt.figure()
-_, bins = np.histogram(m1zams, bins=100, density=True)
-kde = stats.gaussian_kde(m1zams, weights=w_z_index)
-plt.plot(bins[:-1], kde(bins[:-1]))
-plt.hist(m1zams, bins=100, weights=w_z_index, density=True)
-plt.xlabel('Metallicity1 at ZAMS at z=0')
-plt.ylabel(r'BHNS merger rate [simulation weighted] Density')
+# now we would like to overlay the histogram but do it for each type of stellar object
+# ie we want to group the rates by progenitors (would be nice to do a fill on this)
+# use this as a selector Stellar_Type@ZAMS(2)
+# _, bins = np.histogram(m1zams, bins=100, density=True)
+# m1zamskde = stats.gaussian_kde(m1zams, weights=w_z_index)
+# plt.plot(bins[:-1], m1zamskde(bins[:-1]))
+# create a subroutine that iterates through each star 1 type for now
+def plot_stellar_type_at_zams(type_index):
+    stellar_search = np.argwhere(stellar_types_1==type_index)
+    plt.hist(
+        m1zams[stellar_search],
+        bins=50,
+        weights=w_z_index[stellar_search],
+        label=f'(1) Type {stellar_types_dictionary[type_index]}', histtype='step',
+    )
+# plt.hist(m1zams[np.argwhere(stellar_types_1==16)], bins=100, weights=w_z_index[stellar_search], legend='(1) Type 1')
+for t in set(stellar_types_1):
+    plot_stellar_type_at_zams(t)
+plt.title('Merger Rate simulation weighted at z=0')
+plt.xlabel('Metallicity1 at ZAMS')
+plt.ylabel(r'BHNS merger rate [simulation weighted]')
+plt.legend()
 plt.show()
 
 # taking from the example, we also want to be able to get the "primary black hole mass" histogram,
