@@ -66,7 +66,8 @@ z_index = 0
 
 print('the redshift weights per system at z = ', redshifts[z_index], ' are given by' )
 w_z_index =w_per_z_per_system[:,z_index]
-w_z_summed = np.sum(w_per_z_per_system, axis=1) # here we crudely sum over all redshift weights, but
+# want to sum up to a certain redshift. For now, sum up to redshift 1
+w_z_summed = np.sum(w_per_z_per_system[:,:20], axis=1) # here we crudely sum over all redshift weights, but
 # eventually we'd like to be able to sum up to a certain redshift
 print(w_z_index.shape)
 
@@ -95,7 +96,7 @@ plt.figure()
 
 # create a subroutine that iterates through each star 1 type for now
 def plot_stellar_type_at_zams(type_index):
-    bins=100
+    bins=1000
     stellar_search = np.argwhere(stellar_types_1==type_index)
     # plt.hist(
     #     m1zams[stellar_search],
@@ -118,8 +119,9 @@ for t in set(stellar_types_1):
     plot_stellar_type_at_zams(t)
 # plot_stellar_type_at_zams(list(set(stellar_types_1))[0])
 plt.title('Number of systems/year [Density] summed to z=0')
-plt.xlabel('Metallicity1 at ZAMS')
+plt.xlabel('Metallicity1 at ZAMS') #TODO: check units against COMPAS simulation. Is this actually Z/Z0?
 plt.ylabel(r'BHNS merger rate [simulation weighted]')
+plt.xscale('log')
 plt.legend()
 plt.show()
 assert 0
