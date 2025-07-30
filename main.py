@@ -10,6 +10,8 @@ import string
 from compas_python_utils.cosmic_integration import FastCosmicIntegration
 from scipy import stats
 
+from compas_python_utils.cosmic_integration.selection_effects import SNRinterpolator
+
 stellar_types_dictionary = ["Main_Sequence_<=_0.7",
                  "Main_Sequence_>_0.7",
                  "Hertzsprung_Gap",
@@ -64,7 +66,7 @@ redshifts = fdata[rate_key]['redshifts'][...].squeeze()
 print('available redshifts are: ', redshifts, ' this gives %s options'%len(redshifts))
 
 # change this key for the detection rate
-w_per_z_per_system = fdata[rate_key]['detection_rateO3'][...].squeeze()
+w_per_z_per_system = fdata[rate_key]['detection_rateVoyager.txt'][...].squeeze()
 
 print(np.shape(w_per_z_per_system))
 
@@ -84,7 +86,7 @@ print('the redshift weights per system at z = ', redshifts[z_index], ' are given
 # ^^^^ the above will work since apparently fci doesn't use every dco system, so still have to mask even in dco
 # proof: np.isin(fdata['BSE_Double_Compact_Objects']['SEED'], fdata[rate_key]['SEED']) should be all true, but it's not
 # ahh it looks like it just pulling BHBH, make sure to set to 'ALL' for dco_type
-#TODO: actually, instead of writing code to select things after the fact, we can just re-run FCI and select the
+# actually, instead of writing code to select things after the fact, we can just re-run FCI and select the
 # object of interest
 
 # dcomask = fdata[rate_key]['DCOmask'][()]
@@ -160,7 +162,7 @@ def plot_up_to_redshift(ax, detector: str):
     plot_stellar_type_at_zams(-1)
 # plot_stellar_type_at_zams(list(set(stellar_types_1))[0])
 fig, ax = plt.subplots(1, 1)
-plot_up_to_redshift(ax, 'LVK')
+plot_up_to_redshift(ax, 'CE')
 # plot_up_to_redshift(ax, 'CE')
 
 ax.set_title(f'Number of DCO systems/year')
