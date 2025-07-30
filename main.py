@@ -51,11 +51,11 @@ print(fdata.keys())
 rate_key = 'Rates_mu00.035_muz-0.23_alpha0.0_sigma00.39_sigmaz0.0'
 print(fdata[rate_key].keys())
 redshifts                 = fdata[rate_key]['redshifts'][()] # Redshifts at which the rates were calculated
-merger_rate_z0_per_system = fdata[rate_key]['merger_rate_z0'][()] # detection rate for O3 sensitivity 
-total_rate_z0 = np.sum(merger_rate_z0_per_system) # this is the rate for redshift 0, you can get the rate for all redshifts by summing over merger_rate
+# merger_rate_z0_per_system = fdata[rate_key]['detection_rateO3'][()] # detection rate for O3 sensitivity
+# total_rate_z0 = np.sum(merger_rate_z0_per_system) # this is the rate for redshift 0, you can get the rate for all redshifts by summing over merger_rate
 
 # print some interesting information about the various merger rates per redshift
-print(total_rate_z0, '[Gpc^-3 yr^_1]')
+# print(total_rate_z0, '[Gpc^-3 yr^_1]')
 
 w_0 = fdata[rate_key]['merger_rate_z0'][...].squeeze()
 
@@ -63,7 +63,8 @@ print(w_0)
 redshifts = fdata[rate_key]['redshifts'][...].squeeze()
 print('available redshifts are: ', redshifts, ' this gives %s options'%len(redshifts))
 
-w_per_z_per_system = fdata[rate_key]['merger_rate'][...].squeeze()
+# change this key for the detection rate
+w_per_z_per_system = fdata[rate_key]['detection_rateO3'][...].squeeze()
 
 print(np.shape(w_per_z_per_system))
 
@@ -122,30 +123,30 @@ def plot_up_to_redshift(ax, detector: str):
 
     # create a subroutine that iterates through each star 1 type for now
     def plot_stellar_type_at_zams(type_index, include_histo=False):
-        bins=1000
-        stellar_search = np.argwhere(stellar_types_1==type_index)
-        if stellar_search.size <= 2:
-            print(f'Stellar type {stellar_types_dictionary[type_index]} has <=2 elements, so not painting')
-            return
+        bins=50
+        # stellar_search = np.argwhere(stellar_types_1==type_index)
+        # if stellar_search.size <= 2:
+        #     print(f'Stellar type {stellar_types_dictionary[type_index]} has <=2 elements, so not painting')
+        #     return
         if include_histo:
             ax.hist(
-                m1zams[stellar_search],
+                m1zams, #stellar_search
                 bins=bins,
-                weights=w_z_summed[stellar_search],
-                label=f'(1) Type {stellar_types_dictionary[type_index]}', histtype='step',
+                weights=w_z_summed,
+                # label=f'(1) Type {stellar_types_dictionary[type_index]}', histtype='step',
                 density=True
             )
 
-        _, bins = np.histogram(m1zams[stellar_search], bins=bins)
+        _, bins = np.histogram(m1zams, bins=bins)
         # print(m1zams[stellar_search].shape)
         # print(f'w_z_summed: {w_z_summed[stellar_search].flatten().shape}')
         m1zamskde = stats.gaussian_kde(
-            m1zams[stellar_search].flatten(),
-            weights=w_z_summed[stellar_search].flatten()
+            m1zams.flatten(),
+            weights=w_z_summed.flatten()
         )
         ax.plot(
             bins[:-1]/0.012, m1zamskde(bins[:-1]),
-            label=f'(1) Type {stellar_types_dictionary[type_index]} ({detector})'
+            # label=f'(1) Type {stellar_types_dictionary[type_index]} ({detector})'
         )
         ax.fill_between(
             bins[:-1]/0.012,
@@ -154,18 +155,19 @@ def plot_up_to_redshift(ax, detector: str):
             alpha=0.3
         )
     # plt.hist(m1zams[np.argwhere(stellar_types_1==16)], bins=100, weights=w_z_index[stellar_search], legend='(1) Type 1')
-    for t in set(stellar_types_1):
-        plot_stellar_type_at_zams(t)
+    # for t in set(stellar_types_1):
+    #     plot_stellar_type_at_zams(t)
+    plot_stellar_type_at_zams(-1)
 # plot_stellar_type_at_zams(list(set(stellar_types_1))[0])
 fig, ax = plt.subplots(1, 1)
 plot_up_to_redshift(ax, 'LVK')
-plot_up_to_redshift(ax, 'CE')
+# plot_up_to_redshift(ax, 'CE')
 
 ax.set_title(f'Number of DCO systems/year')
 ax.set_xlabel('Metallicity1 at ZAMS Z/Z0') #TODO: check units against COMPAS simulation. Looks like this is just Z
 ax.set_ylabel(r'Number of DCO systems/year [simulation weighted]')
 ax.set_xscale('log')
-ax.legend()
+# ax.legend()
 fig.show()
 
 # taking from the example, we also want to be able to get the "primary black hole mass" histogram,
