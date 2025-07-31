@@ -9,13 +9,19 @@ import pandas as pd
 import string
 from compas_python_utils.cosmic_integration import FastCosmicIntegration
 from scipy import stats
-
 from compas_python_utils.cosmic_integration.selection_effects import SNRinterpolator
-
 from stellar_types import stellar_types_dictionary
 
+class SensitivityProfile:
+    def __init__(self, name: str, up_to_redshift: int, sensfile: str):
+        self.name = name
+        self.up_to_redshift = up_to_redshift
+        self.sensfile = sensfile
+
 sensitivity_dictionary = {
-    'CE': 10,
+    'CE': {
+
+    },
     'LVK': 1
 }
 
@@ -28,8 +34,6 @@ fdata = h5.File(path)
 
 print('the available datasets for this file are:')
 print(fdata.keys())
-# hopefully there are some DCOs in the file to work with
-# print(fdata['BSE_Double_Compact_Objects'].keys())
 
 rate_key = 'Rates_mu00.035_muz-0.23_alpha0.0_sigma00.39_sigmaz0.0'
 print(fdata[rate_key].keys())
@@ -46,14 +50,10 @@ print(w_0)
 redshifts = fdata[rate_key]['redshifts'][...].squeeze()
 print('available redshifts are: ', redshifts, ' this gives %s options'%len(redshifts))
 
-# change this key for the detection rate
-w_per_z_per_system = fdata[rate_key]['detection_rateVoyager.txt'][...].squeeze()
-
-print(np.shape(w_per_z_per_system))
-
-z_index = 0
-
-print('the redshift weights per system at z = ', redshifts[z_index], ' are given by' )
+#
+# z_index = 0
+#
+# print('the redshift weights per system at z = ', redshifts[z_index], ' are given by' )
 # w_z_index =w_per_z_per_system[:,z_index]
 # want to sum up to a certain redshift. For now, sum up to redshift 1
 
@@ -75,7 +75,7 @@ print('the redshift weights per system at z = ', redshifts[z_index], ' are given
 # fs2 = fdata['BSE_Double_Compact_Objects']['Stellar_Type(2)'][dcomask][()] # final stellar type
 # object_select = np.where((fs1 == 14) & (fs2 == 14)) # look for BHBH. two ways for this to happen
 # so must have logical OR
-
+# change this key for the detection rate
 dcoseeds = fdata[rate_key]['SEED'][()] # instead of selecting all dcos, get the seeds that are BHBH
 
 m1zams = fdata['BSE_System_Parameters']['Metallicity@ZAMS(1)'][()]
@@ -94,19 +94,28 @@ stellar_types_2 = fdata['BSE_System_Parameters']['Stellar_Type@ZAMS(2)'][()][sea
 # _, bins = np.histogram(m1zams, bins=100, density=True)
 # m1zamskde = stats.gaussian_kde(m1zams, weights=w_z_index)
 # plt.plot(bins[:-1], m1zamskde(bins[:-1]))
-def plot_up_to_redshift(ax, detector: str):
-    r_index = np.where(redshifts == sensitivity_dictionary[detector])
+def plot_up_to_redshift(ax, profile: SensitivityProfile):
+    w_per_z_per_system = fdata[rate_key][f'detection_rate{profile.sensfile}'][...].squeeze()
+    r_index = np.where(redshifts == profile.up_to_redshift)
     if len(r_index) == 0:
         raise "Redshift not found..consider changing your FastCosmicIntegration settings"
     r_index = r_index[0][0] # redshifts are monotone increasing so first result is ok
     w_z_summed = np.sum(
         w_per_z_per_system[:,:r_index],
         axis=1
-    ) # eventually we'd like to be able to sum up to a certain redshift
+    )
 
     # create a subroutine that iterates through each star 1 type for now
-    def plot_stellar_type_at_zams(type_index, include_histo=False):
-        bins=50
+    def plot_stellar_type_at_zams(type_index, include_histo=False, include_complete_redshift=False):
+        bins=1000
+        if include_complete_redshift:
+            redshift_fig, redshift_ax = plt.subplots(1,1)
+            redshift_ax.plot(redshifts[:-1], np.sum(w_per_z_per_system, axis=0)) # change "2" if you actually ran the weights for more redshifts (here its only for 0 and 1, ie beyond  >2)
+            redshift_ax.set_xlabel('redshift z')
+            redshift_ax.set_ylabel('Merger rate at z =0 systems/(Gpc^3 * yr)', fontsize=12)
+            redshift_ax.set_title('BBH merger rate', fontsize=20)
+            redshift_fig.savefig(f'./redshift{profile.name}.png')
+            redshift_fig.show()
         # stellar_search = np.argwhere(stellar_types_1==type_index)
         # if stellar_search.size <= 2:
         #     print(f'Stellar type {stellar_types_dictionary[type_index]} has <=2 elements, so not painting')
@@ -129,6 +138,7 @@ def plot_up_to_redshift(ax, detector: str):
         )
         ax.plot(
             bins[:-1]/0.012, m1zamskde(bins[:-1]),
+            label=profile.name
             # label=f'(1) Type {stellar_types_dictionary[type_index]} ({detector})'
         )
         ax.fill_between(
@@ -140,17 +150,30 @@ def plot_up_to_redshift(ax, detector: str):
     # plt.hist(m1zams[np.argwhere(stellar_types_1==16)], bins=100, weights=w_z_index[stellar_search], legend='(1) Type 1')
     # for t in set(stellar_types_1):
     #     plot_stellar_type_at_zams(t)
-    plot_stellar_type_at_zams(-1)
+    plot_stellar_type_at_zams(-1, include_complete_redshift=True)
 # plot_stellar_type_at_zams(list(set(stellar_types_1))[0])
 fig, ax = plt.subplots(1, 1)
-plot_up_to_redshift(ax, 'CE')
+
+plot_up_to_redshift(
+    ax,
+    SensitivityProfile("CE",
+                       10, sensfile='CE.txt'
+                       )
+)
+
+plot_up_to_redshift(
+    ax,
+    SensitivityProfile("O3",
+                       1, sensfile='O3'
+                       )
+)
 # plot_up_to_redshift(ax, 'CE')
 
 ax.set_title(f'Number of DCO systems/year')
 ax.set_xlabel('Metallicity1 at ZAMS Z/Z0') #TODO: check units against COMPAS simulation. Looks like this is just Z
 ax.set_ylabel(r'Number of DCO systems/year [simulation weighted]')
 ax.set_xscale('log')
-# ax.legend()
+ax.legend()
 fig.show()
 
 # taking from the example, we also want to be able to get the "primary black hole mass" histogram,
@@ -175,11 +198,6 @@ fig.show()
 # plt.title('BH masses of BH-BH merger population at redshift %s Density'%np.round(redshifts[z_index],3), fontsize=12)
 # plt.show()
 #
-# plt.plot(redshifts[:-1], np.sum(w_per_z_per_system, axis=0)) # change "2" if you actually ran the weights for more redshifts (here its only for 0 and 1, ie beyond  >2)
-# plt.xlabel('redshift z')
-# plt.ylabel(r'BHBH merger rate at $z =%s [\rm{Gpc}^{-3} \rm{yr}^{-1}]$'%np.round(redshifts[z_index],3), fontsize=12)
-# plt.title('BBH merger rate', fontsize=20)
-# plt.show()
 
 fdata.close()
 # then run the cosmic integrator
