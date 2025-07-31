@@ -18,12 +18,24 @@ class SensitivityProfile:
         self.up_to_redshift = up_to_redshift
         self.sensfile = sensfile
 
-sensitivity_dictionary = {
-    'CE': {
+class RateProfile:
+    def __init__(self, key: str):
+        self.key = key
 
-    },
-    'LVK': 1
-}
+        # now let's see if we can dynamically append all the properties
+        properties = key.split('_')[1:] # skip first one
+        for p in properties:
+            number = ''
+            name = ''
+            for char in p:
+                if char.isdigit() or (char == '.') or (char == '-'):
+                    number = number + char
+                else:
+                    name = name + char
+            print(f'setting {p.replace(str(float(number)), '')} to {float(number)}')
+            
+            # get the name by subtracting the number from the rest of the string
+            setattr(self, name, float(number))
 
 # to obtain properties of ALL binaries simulated, do this:
 path = './Boesky_sims.h5'
@@ -34,21 +46,6 @@ fdata = h5.File(path)
 
 print('the available datasets for this file are:')
 print(fdata.keys())
-
-rate_key = 'Rates_mu00.035_muz-0.23_alpha0.0_sigma00.39_sigmaz0.0'
-print(fdata[rate_key].keys())
-redshifts                 = fdata[rate_key]['redshifts'][()] # Redshifts at which the rates were calculated
-# merger_rate_z0_per_system = fdata[rate_key]['detection_rateO3'][()] # detection rate for O3 sensitivity
-# total_rate_z0 = np.sum(merger_rate_z0_per_system) # this is the rate for redshift 0, you can get the rate for all redshifts by summing over merger_rate
-
-# print some interesting information about the various merger rates per redshift
-# print(total_rate_z0, '[Gpc^-3 yr^_1]')
-
-w_0 = fdata[rate_key]['merger_rate_z0'][...].squeeze()
-
-print(w_0)
-redshifts = fdata[rate_key]['redshifts'][...].squeeze()
-print('available redshifts are: ', redshifts, ' this gives %s options'%len(redshifts))
 
 #
 # z_index = 0
@@ -76,13 +73,6 @@ print('available redshifts are: ', redshifts, ' this gives %s options'%len(redsh
 # object_select = np.where((fs1 == 14) & (fs2 == 14)) # look for BHBH. two ways for this to happen
 # so must have logical OR
 # change this key for the detection rate
-dcoseeds = fdata[rate_key]['SEED'][()] # instead of selecting all dcos, get the seeds that are BHBH
-
-m1zams = fdata['BSE_System_Parameters']['Metallicity@ZAMS(1)'][()]
-search = np.isin(fdata['BSE_System_Parameters']['SEED'], dcoseeds) # find the location of each dco in the larger colleciton
-m1zams = m1zams[search]
-stellar_types_1 = fdata['BSE_System_Parameters']['Stellar_Type@ZAMS(1)'][()][search]
-stellar_types_2 = fdata['BSE_System_Parameters']['Stellar_Type@ZAMS(2)'][()][search]
 
 # print(np.argwhere(stellar_types_1 == 1))
 # print(set(stellar_types_1))
@@ -94,8 +84,30 @@ stellar_types_2 = fdata['BSE_System_Parameters']['Stellar_Type@ZAMS(2)'][()][sea
 # _, bins = np.histogram(m1zams, bins=100, density=True)
 # m1zamskde = stats.gaussian_kde(m1zams, weights=w_z_index)
 # plt.plot(bins[:-1], m1zamskde(bins[:-1]))
-def plot_up_to_redshift(ax, profile: SensitivityProfile):
-    w_per_z_per_system = fdata[rate_key][f'detection_rate{profile.sensfile}'][...].squeeze()
+def plot_up_to_redshift(rate_profile: RateProfile, ax, profile: SensitivityProfile):
+    dcoseeds = fdata[rate_profile.key]['SEED'][()] # instead of selecting all dcos, get the seeds that are BHBH
+
+    m1zams = fdata['BSE_System_Parameters']['Metallicity@ZAMS(1)'][()]
+    search = np.isin(fdata['BSE_System_Parameters']['SEED'], dcoseeds) # find the location of each dco in the larger colleciton
+    m1zams = m1zams[search]
+    stellar_types_1 = fdata['BSE_System_Parameters']['Stellar_Type@ZAMS(1)'][()][search]
+    stellar_types_2 = fdata['BSE_System_Parameters']['Stellar_Type@ZAMS(2)'][()][search]
+    # rate_key = 'Rates_mu00.035_muz-0.23_alpha0.0_sigma00.39_sigmaz0.0'
+    print(fdata[rate_profile.key].keys())
+    redshifts                 = fdata[rate_profile.key]['redshifts'][()] # Redshifts at which the rates were calculated
+    # merger_rate_z0_per_system = fdata[rate_key]['detection_rateO3'][()] # detection rate for O3 sensitivity
+    # total_rate_z0 = np.sum(merger_rate_z0_per_system) # this is the rate for redshift 0, you can get the rate for all redshifts by summing over merger_rate
+
+    # print some interesting information about the various merger rates per redshift
+    # print(total_rate_z0, '[Gpc^-3 yr^_1]')
+
+    w_0 = fdata[rate_profile.key]['merger_rate_z0'][...].squeeze()
+
+    print(w_0)
+    redshifts = fdata[rate_profile.key]['redshifts'][...].squeeze()
+    print('available redshifts are: ', redshifts, ' this gives %s options'%len(redshifts))
+
+    w_per_z_per_system = fdata[rate_profile.key][f'detection_rate{profile.sensfile}'][...].squeeze()
     r_index = np.where(redshifts == profile.up_to_redshift)
     if len(r_index) == 0:
         raise "Redshift not found..consider changing your FastCosmicIntegration settings"
@@ -155,6 +167,7 @@ def plot_up_to_redshift(ax, profile: SensitivityProfile):
 fig, ax = plt.subplots(1, 1)
 
 plot_up_to_redshift(
+    RateProfile('Rates_mu00.035_muz-0.23_alpha0.0_sigma00.39_sigmaz0.0'),
     ax,
     SensitivityProfile("CE",
                        10, sensfile='CE.txt'
@@ -162,12 +175,18 @@ plot_up_to_redshift(
 )
 
 plot_up_to_redshift(
+    RateProfile('Rates_mu00.035_muz-0.23_alpha0.0_sigma00.39_sigmaz0.0'),
     ax,
     SensitivityProfile("O3",
                        1, sensfile='O3'
                        )
 )
 # plot_up_to_redshift(ax, 'CE')
+# we eventually want a way to plot this rate for a few different mu0s and sigmas. from van son we want to try a few values
+# there are 9 total calculations to complete
+# three min values for mu0
+# three max values for muz
+# sigmas seem to be fixed at 0.036 and 0.006, respectively. should be wary of units
 
 ax.set_title(f'Number of DCO systems/year')
 ax.set_xlabel('Metallicity1 at ZAMS Z/Z0') #TODO: check units against COMPAS simulation. Looks like this is just Z
