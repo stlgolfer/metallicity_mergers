@@ -1,7 +1,17 @@
 import h5py as h5
-file = h5.File('Boesky_sims.h5', 'r+')
-rate_key = 'Rates_mu00.035_muz-0.23_alpha0.0_sigma00.39_sigmaz0.0'
+import sys
 
+file = h5.File('Boesky_sims.h5', 'r+')
+all_keys = list(file.keys())
+for i, k in enumerate(all_keys):
+    print(f'[{i}]: {k}')
+rate_key = all_keys[int(input('Select rate key: '))]
+# rate_key = 'Rates_mu00.035_muz-0.23_alpha0.0_sigma00.39_sigmaz0.0'
+
+if input('Delete this key? [y/n]') == 'y':
+    del file[rate_key]
+    print('Done')
+    sys.exit(0)
 # print("rate" in file[rate_key])
 print('The following will be deleted (y/n):')
 for key in file[rate_key].keys():

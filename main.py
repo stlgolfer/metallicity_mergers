@@ -36,6 +36,9 @@ class RateProfile:
             
             # get the name by subtracting the number from the rest of the string
             setattr(self, name, float(number))
+    
+    def stringify(self):
+        return ','.join(self.key.split('_')[1:])
 
 # to obtain properties of ALL binaries simulated, do this:
 path = './Boesky_sims.h5'
@@ -150,7 +153,7 @@ def plot_up_to_redshift(rate_profile: RateProfile, ax, profile: SensitivityProfi
         )
         ax.plot(
             bins[:-1]/0.012, m1zamskde(bins[:-1]),
-            label=profile.name
+            label=f'{profile.name} ({rate_profile.stringify()})'
             # label=f'(1) Type {stellar_types_dictionary[type_index]} ({detector})'
         )
         ax.fill_between(
@@ -162,37 +165,43 @@ def plot_up_to_redshift(rate_profile: RateProfile, ax, profile: SensitivityProfi
     # plt.hist(m1zams[np.argwhere(stellar_types_1==16)], bins=100, weights=w_z_index[stellar_search], legend='(1) Type 1')
     # for t in set(stellar_types_1):
     #     plot_stellar_type_at_zams(t)
-    plot_stellar_type_at_zams(-1, include_complete_redshift=True)
+    plot_stellar_type_at_zams(-1, include_complete_redshift=False)
 # plot_stellar_type_at_zams(list(set(stellar_types_1))[0])
 fig, ax = plt.subplots(1, 1)
 
-plot_up_to_redshift(
-    RateProfile('Rates_mu00.035_muz-0.23_alpha0.0_sigma00.39_sigmaz0.0'),
-    ax,
-    SensitivityProfile("CE",
-                       10, sensfile='CE.txt'
-                       )
-)
+def plot_pair(profile: RateProfile):
+    plot_up_to_redshift(
+        profile,
+        ax,
+        SensitivityProfile("CE",
+                        10, sensfile='CE.txt'
+                        )
+    )
 
-plot_up_to_redshift(
-    RateProfile('Rates_mu00.035_muz-0.23_alpha0.0_sigma00.39_sigmaz0.0'),
-    ax,
-    SensitivityProfile("O3",
-                       1, sensfile='O3'
-                       )
-)
+    plot_up_to_redshift(
+        profile,
+        ax,
+        SensitivityProfile("O3",
+                        1, sensfile='O3'
+                        )
+    )
+
 # plot_up_to_redshift(ax, 'CE')
 # we eventually want a way to plot this rate for a few different mu0s and sigmas. from van son we want to try a few values
 # there are 9 total calculations to complete
 # three min values for mu0
 # three max values for muz
 # sigmas seem to be fixed at 0.036 and 0.006, respectively. should be wary of units
+plot_pair(RateProfile('Rates_mu00.035_muz-0.5_alpha-1.778_sigma01.122_sigmaz0.049'))
+plot_pair(RateProfile('Rates_mu00.025_muz-0.049_alpha-1.778_sigma01.122_sigmaz0.049'))
+plot_pair(RateProfile('Rates_mu00.007_muz0.0_alpha-1.778_sigma01.122_sigmaz0.049'))
 
 ax.set_title(f'Number of DCO systems/year')
 ax.set_xlabel('Metallicity1 at ZAMS Z/Z0') #TODO: check units against COMPAS simulation. Looks like this is just Z
 ax.set_ylabel(r'Number of DCO systems/year [simulation weighted]')
 ax.set_xscale('log')
-ax.legend()
+ax.legend(fontsize=5)
+fig.savefig('./Total systems.png')
 fig.show()
 
 # taking from the example, we also want to be able to get the "primary black hole mass" histogram,
