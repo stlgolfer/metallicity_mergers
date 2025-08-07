@@ -43,9 +43,9 @@ class RateProfile:
     def stringify(self):
         return ','.join(self.key.split('_')[1:])
 
-if __name__ == 'main':
+if __name__ == '__main__':
     # to obtain properties of ALL binaries simulated, do this:
-    path = './Boesky_sims.h5'
+    path = '/Volumes/Elements/Boesky_sims.h5'
 
     print('excecuting this code might take a little while (~few min) \n')
     fdata = h5.File(path)
