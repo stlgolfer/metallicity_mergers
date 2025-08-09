@@ -56,7 +56,7 @@ if __name__ == '__main__':
     # # for each metallicity, count the total mass
     # total = np.zeros(len(metallicity_grid))
     # Ndcos_per_metallicity = np.zeros(len(metallicity_grid))
-    dco_locs = np.isin(all_seeds, dco_seeds)
+    dco_locs = np.isin(all_seeds, dco_seeds) # TODO: need to mask with dcomask
     # with tqdm(len(metallicity_grid)) as pbar:
     #     for i, Z in enumerate(metallicity_grid):
     #             mask = metallicities == Z
@@ -75,7 +75,6 @@ if __name__ == '__main__':
     # for each metallicity, get the total number of dcos in that
     # f_eff = np.divide(Ndcos_per_metallicity, total)
     eff_fig, eff_ax = plt.subplots(1, 1)
-    
     metallicity_dcos = np.log10(metallicities[dco_locs]/0.012)
     total_bins = 50
 
@@ -92,8 +91,7 @@ if __name__ == '__main__':
     # print(f'w_z_summed: {w_z_summed[stellar_search].flatten().shape}')
     metallicitykde = stats.gaussian_kde(
         metallicity_dcos.flatten(),
-        weights=mixture_weights_system_params[dco_locs].flatten(),
-        
+        weights=mixture_weights_system_params[dco_locs].flatten()
     )
 
     eff_ax.plot(
