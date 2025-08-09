@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from compas_python_utils.cosmic_integration.ClassCOMPAS import COMPASData
 from tqdm import tqdm
+from scipy import stats
 
 if __name__ == '__main__':
     # get binary fraction
@@ -18,6 +19,7 @@ if __name__ == '__main__':
     m1s = fdata['BSE_System_Parameters']['Mass@ZAMS(1)'][()]
     m2s = fdata['BSE_System_Parameters']['Mass@ZAMS(2)'][()]
     metallicities = fdata["BSE_System_Parameters"]["Metallicity@ZAMS(1)"][()]
+    mixture_weights_system_params = fdata['BSE_System_Parameters']['mixture_weight'][()]
     fdata.close()
 
     compasdata = COMPASData(
@@ -47,33 +49,70 @@ if __name__ == '__main__':
 
     # fraction is 1.77
     # now get the metallicity grad
-    zmin = np.min(metallicities)
-    zmax = np.max(metallicities)
-    metallicity_grid = np.random.choice(metallicities, 1000) # here we have to uniformly choose
-    # can't just use linspace since not all of those metallicities are guaranteed to exist
-    # for each metallicity, count the total mass
-    total = np.zeros(len(metallicity_grid))
-    Ndcos_per_metallicity = np.zeros(len(metallicity_grid))
+    # zmin = np.min(metallicities)
+    # zmax = np.max(metallicities)
+    # metallicity_grid = np.random.choice(metallicities, 1000) # here we have to uniformly choose
+    # # can't just use linspace since not all of those metallicities are guaranteed to exist
+    # # for each metallicity, count the total mass
+    # total = np.zeros(len(metallicity_grid))
+    # Ndcos_per_metallicity = np.zeros(len(metallicity_grid))
     dco_locs = np.isin(all_seeds, dco_seeds)
-    with tqdm(len(metallicity_grid)) as pbar:
-        for i, Z in enumerate(metallicity_grid):
-                mask = metallicities == Z
-                total[i] = np.sum(m1s[mask]) + np.sum(m2s[mask])
+    # with tqdm(len(metallicity_grid)) as pbar:
+    #     for i, Z in enumerate(metallicity_grid):
+    #             mask = metallicities == Z
+    #             total[i] = np.sum(m1s[mask]) + np.sum(m2s[mask])
 
-                # at the same time, get the number of dcos
-                # logical AND the dco mask and the metallicity locations and sum
-                # ah no dco mask is for the dco key, so need to match seeds
+    #             # at the same time, get the number of dcos
+    #             # logical AND the dco mask and the metallicity locations and sum
+    #             # ah no dco mask is for the dco key, so need to match seeds
                 
-                Ndcos_per_metallicity[i] = np.sum(dco_locs & mask) # total number of dcos with metallicity fixed
-                pbar.update(1)
-    total / 1.77
+    #             Ndcos_per_metallicity[i] = np.sum(dco_locs & mask) # total number of dcos with metallicity fixed
+    #             pbar.update(1)
+    # total / 1.77
+
+    # going to try the weights method Floor had suggested
+    # first get the metallicities of all the dcos
     # for each metallicity, get the total number of dcos in that
-    f_eff = np.divide(Ndcos_per_metallicity, total)
+    # f_eff = np.divide(Ndcos_per_metallicity, total)
     eff_fig, eff_ax = plt.subplots(1, 1)
-    eff_ax.plot(np.sort(metallicity_grid), f_eff)
-    # eff_ax.hist(f_eff, bins = np.sort(metallicity_grid))
-    # ax.set_xlabel('Delay time [Gyr]')
-    # ax.set_ylabel('Weighted rate in COMPAS')
+    
+    metallicity_dcos = np.log10(metallicities[dco_locs]/0.012)
+    total_bins = 50
+
+    eff_ax.hist(
+        metallicity_dcos,
+        weights=mixture_weights_system_params[dco_locs],
+        bins=total_bins,
+        density=True,
+        label='Density histogram'
+    )
+
+    _, bins = np.histogram(metallicity_dcos, bins=total_bins)
+    # print(m1zams[stellar_search].shape)
+    # print(f'w_z_summed: {w_z_summed[stellar_search].flatten().shape}')
+    metallicitykde = stats.gaussian_kde(
+        metallicity_dcos.flatten(),
+        weights=mixture_weights_system_params[dco_locs].flatten(),
+        
+    )
+
+    eff_ax.plot(
+        bins[:-1], metallicitykde(bins[:-1]),
+        label='KDE plot'
+        # label=f'(1) Type {stellar_types_dictionary[type_index]} ({detector})'
+    )
+    eff_ax.fill_between(
+        bins[:-1],
+        metallicitykde(bins[:-1]),
+        interpolate=True,
+        alpha=0.3
+    )
+
+    eff_ax.set_yscale('log')
+    eff_ax.set_xlabel('Log10(Z_dco / Zsun)')
+    eff_ax.set_ylabel('??')
+    # eff_ax.set_ylim(1)
+    eff_ax.set_title('Formation eff. up to constant factor')
+    eff_ax.legend()
     eff_fig.savefig('./formation_efficiency.png')
-    # instead, maybe use the same code but only for a few metallicities
     

@@ -185,8 +185,8 @@ if __name__ == '__main__':
         plot_up_to_redshift(
             profile,
             ax,
-            SensitivityProfile("O3",
-                            1, sensfile='detection_rateO3'
+            SensitivityProfile("design",
+                            1, sensfile='detection_ratedesign'
                             )
         )
 
@@ -200,10 +200,7 @@ if __name__ == '__main__':
         )
 
     # sigmas seem to be fixed at 0.036 and 0.006, respectively. should be wary of units
-    # plot_pair(RateProfile('Rates_mu00.035_muz-0.5_alpha-1.778_sigma01.122_sigmaz0.049'))
-    plot_pair(RateProfile('Rates_mu00.035_muz0.035_alpha-1.778_sigma01.122_sigmaz0.049'))
-    # plot_pair(RateProfile('Rates_mu00.025_muz-0.049_alpha-1.778_sigma01.122_sigmaz0.049'))
-    # plot_pair(RateProfile('Rates_mu00.007_muz0.0_alpha-1.778_sigma01.122_sigmaz0.049'))
+    plot_pair(RateProfile('Rates_mu00.05_muz0.05_alpha-1.778_sigma01.122_sigmaz0.049'))
 
     ax.set_title(f'Number of DCO systems/year')
     ax.set_xlabel('Metallicity1 at ZAMS Z/Z0') #TODO: check units against COMPAS simulation. Looks like this is just Z
