@@ -11,17 +11,17 @@ from scipy import stats
 def analytical_star_forming_mass_per_binary_using_kroupa_imf(
         m1_min, m1_max, m2_min, fbin=1., imf_mass_bounds=[0.01,0.08,0.5,200]
 ):
-    """
-    Analytical computation of the mass of stars formed per binary star formed within the
-    [m1 min, m1 max] and [m2 min, ..] rage,
-    using the Kroupa IMF:
+    
+    # Analytical computation of the mass of stars formed per binary star formed within the
+    # [m1 min, m1 max] and [m2 min, ..] rage,
+    # using the Kroupa IMF:
 
-        p(M) \propto M^-0.3 for M between m1 and m2
-        p(M) \propto M^-1.3 for M between m2 and m3;
-        p(M) = alpha * M^-2.3 for M between m3 and m4;
+    #     p(M) \propto M^-0.3 for M between m1 and m2
+    #     p(M) \propto M^-1.3 for M between m2 and m3;
+    #     p(M) = alpha * M^-2.3 for M between m3 and m4;
 
-    @Ilya Mandel's derivation
-    """
+    # @Ilya Mandel's derivation
+    
     m1, m2, m3, m4 = imf_mass_bounds
     if m1_min < m3:
         raise ValueError(f"This analytical derivation requires IMF break m3  < m1_min ({m3} !< {m1_min})")
@@ -34,9 +34,9 @@ def analytical_star_forming_mass_per_binary_using_kroupa_imf(
     m_rep = (1/fint) * m_avg * (1.5 + (1-fbin)/fbin)
     return m_rep
 
-if __name__ == '__main__':
-    # get binary fraction
-    fdata = h5.File('/Volumes/Elements/Boesky_sims.h5')
+def get_formation_efficiency(filepath):
+# get binary fraction
+    fdata = h5.File(filepath)
     dco_seeds = fdata['BSE_Double_Compact_Objects']['SEED'][()]
     no_dcos = len(dco_seeds)
     all_seeds = fdata['BSE_System_Parameters']['SEED'][()]
@@ -70,12 +70,8 @@ if __name__ == '__main__':
     fdata.close()
 
     compasdata = COMPASData(
-        path='/Volumes/Elements/Boesky_sims.h5',
-        Mlower=0,
-        Mupper=200,
-        m2_min=0,
-        binaryFraction = frac
-        )
+        path=filepath
+    )
     compasdata.setCOMPASDCOmask(types='all', withinHubbleTime=True)
     compasdata.setCOMPASData()
 
@@ -98,7 +94,7 @@ if __name__ == '__main__':
     # for each metallicity, get the total number of dcos in that
     # f_eff = np.divide(Ndcos_per_metallicity, total)
     eff_fig, eff_ax = plt.subplots(1, 1)
-    metallicity_dcos = np.log10(metallicities[dco_locs]/0.012)
+    metallicity_dcos = np.log10(metallicities[dco_locs])
     total_bins = 50
 
     eff_ax.hist(
@@ -109,10 +105,21 @@ if __name__ == '__main__':
         label='Density histogram'
     )
 
-    _, bins = np.histogram(metallicity_dcos, bins=total_bins)
+    dNdco, bins = np.histogram(
+        metallicity_dcos,
+        bins=total_bins,
+        density=True,
+        weights=mixture_weights_system_params[dco_locs]
+    )
     metallicitykde = stats.gaussian_kde(
         metallicity_dcos.flatten(),
         weights=mixture_weights_system_params[dco_locs].flatten()
+    )
+
+    eff_ax.plot(
+        bins[:-1],
+        dNdco/total_mass_evolved_compas,
+        label='np histo'
     )
 
     eff_ax.plot(
@@ -134,4 +141,7 @@ if __name__ == '__main__':
     eff_ax.set_title('Formation eff. up to constant factor')
     eff_ax.legend()
     eff_fig.savefig('./formation_efficiency.png')
+    return dNdco/total_mass_evolved_compas, bins, compasdata
+if __name__ == '__main__':
+    get_formation_efficiency('/Volumes/Elements/Boesky_sims.h5')
     

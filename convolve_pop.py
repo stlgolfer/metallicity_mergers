@@ -11,37 +11,40 @@ from syntheticstellarpopconvolve.metallicity_distributions import metallicity_di
 from syntheticstellarpopconvolve.general_functions import calculate_bincenters, calculate_bin_edges
 from syntheticstellarpopconvolve.SFR_dict_plotting_routines import plot_sfr_dict
 import matplotlib.pyplot as plt
+from population_vis import get_formation_efficiency
+import time
 
 # borrowed heavily from the example scipt from sspc
 
 if __name__ == '__main__':
-
+    filepath = '/Volumes/Elements/Boesky_sims.h5'
     # Create instance of output
-    output_hdf5_filename = '/Volumes/Elements/sspc_output.h5' #os.path.join(TMP_DIR, "output_example.h5")
+    output_hdf5_filename = '/Volumes/Elements/sspc_output.h5'#os.path.join(TMP_DIR, "output_example.h5")
     generate_boilerplate_outputfile(output_hdf5_filename)
 
     # SET UP DATA -- from a basic dict, port to an h5 file and then store this into the output file
     # now we want to use some real data
-    fdata = h5py.File('/Volumes/Elements/Boesky_sims.h5')
+    fdata = h5py.File(filepath)
     all_dco_seeds = fdata['BSE_Double_Compact_Objects']['SEED'][()]
     all_seeds = fdata['BSE_System_Parameters']['SEED'][()]
     metallicities = fdata["BSE_System_Parameters"]["Metallicity@ZAMS(1)"][()]
     fdata.close()
 
-    compasdata = COMPASData(
-        path='/Volumes/Elements/Boesky_sims.h5'
-    )
-    compasdata.setCOMPASDCOmask(types='all', withinHubbleTime=True)
-    compasdata.setCOMPASData()
-
-    delayTimes = compasdata.delayTimes #/ 1000
+    fe_binned, fe_bins, compasdata = get_formation_efficiency(filepath)
+    delayTimes = compasdata.delayTimes
 
     # need to get the metallicities as well
     dco_metallicities = metallicities[np.isin(all_seeds, all_dco_seeds[compasdata.DCOmask])]
     assert len(delayTimes[()]) == len(dco_metallicities), "Something went wrong with masking for dco metallicities"
+    # to query the probabilties, we can digitize the fe_kde using the dco metallicities
+    # or just use the kde directly -- TODO: maybe one way is more true than the other?
+    start_time = time.time()
+    #dco_efficiencies = fe_kde(dco_metallicities) # this is WAY too slow, have to use bins
+    dco_efficiencies = fe_binned[np.digitize(np.log10(dco_metallicities), fe_bins) - 1]
+    print(f'Took {time.time() - start_time} to find efficiencies')
     dummy_data = {
         'delay_time': delayTimes[()]*u.Myr,
-        'probability': (10e-4)*np.ones_like(delayTimes[()]),
+        'probability': dco_efficiencies, # (10e-4)*np.ones_like(delayTimes[()]),
         'metallicity': np.log10(dco_metallicities) # I wonder if we need to log these as well?
     }
     dummy_df = pd.DataFrame.from_records(dummy_data) # load as dataframe
@@ -64,8 +67,6 @@ if __name__ == '__main__':
     )
     
     log_metallicity_bin_centers = calculate_bincenters(log_metallicity_bin_edges)
-    # print(np.diff(log_metallicity_bin_centers))
-    # assert 0
     
     dpdlogZ = metallicity_distribution_vanSon2022(
         log_metallicity_centers=log_metallicity_bin_centers,
@@ -132,13 +133,6 @@ if __name__ == '__main__':
         convolution_config["output_filename"], "r"
     ) as output_hdf5file:
         groupname = "output_data/example/conv_output/convolution_results/"
-
-        # yield_data = output_hdf5file[groupname + "/yield"][()]
-        # print(len(yield_data[()]))
-        # unit_dict = extract_unit_dict(output_hdf5file, groupname)
-
-        # print(yield_data) # values
-        # print(unit_dict) # units
         # could try and make an actual merger plot. go through each key, sum the values
         yield_locations = output_hdf5file['output_data/example/conv_output/convolution_results/']
         merger_fig, merger_ax = plt.subplots(1, 1)
