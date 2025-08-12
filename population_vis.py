@@ -75,12 +75,12 @@ def get_formation_efficiency(filepath):
     compasdata.setCOMPASDCOmask(types='all', withinHubbleTime=True)
     compasdata.setCOMPASData()
 
-    delayTimes = compasdata.delayTimes / 1000
+    delayTimes = compasdata.delayTimes
     # weights = compasdata.weight
 
     fig, ax = plt.subplots(1, 1)
     ax.hist(delayTimes)
-    ax.set_xlabel('Delay time [Gyr]')
+    ax.set_xlabel('Delay time [Myr]')
     ax.set_ylabel('Weighted rate in COMPAS')
     fig.savefig('./delaytimes.png')
 
