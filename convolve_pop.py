@@ -48,7 +48,7 @@ if __name__ == '__main__':
     print(f'Took {time.time() - start_time} to find efficiencies')
     dummy_data = {
         'delay_time': delayTimes[()]*u.Myr,
-        'probability': dco_efficiencies#(10e-4)*np.ones_like(delayTimes[()]),
+        'probability': dco_efficiencies,#(10e-4)*np.ones_like(delayTimes[()]),
         # 'metallicity': np.log10(dco_metallicities) # I wonder if we need to log these as well?
     }
     dummy_df = pd.DataFrame.from_records(dummy_data) # load as dataframe
@@ -86,31 +86,17 @@ if __name__ == '__main__':
         # "metallicity_distribution_array": dpdlogZ,  # We need to transpose!
     }
 
-    axis_dict = plot_sfr_dict(
-        high_res_sfr_dict,
-        time_type="redshift",
-        metallicity_string="logZ",
-        metallicity_distribution_multiply_by_metallicity_bin_sizes=False,
-        metallicity_distribution_multiply_by_sfr=False,
-        metallicity_distribution_scale="log10",
-        metallicity_distribution_cmap=copy.copy(plt.cm.viridis),
-        return_axis_dict=True,
-        figsize=(8,8),
-        fontsize=12,
-    )
-    axis_dict['fig'].savefig('./sfr.png')
-
     #TODO: assume PLANK13 fit for now
     convolution_config['SFR_info'] = {
         'lookback_time_bin_edges': Planck13.lookback_time(redshift_bin_edges),
-        'starformation_rate_array': sfr,
+        'starformation_rate_array': sfr, # this may have incorrect units!
         # 'metallicity_bin_edges': log_metallicity_bin_edges,
         # 'metallicity_distribution_array': dpdlogZ
     }
 
     # set up convolution bin edges
     convolution_config["convolution_lookback_time_bin_edges"] = (
-        np.arange(0, 13, 0.5) * u.Gyr
+        np.arange(0, 100, 20) * u.Gyr
     )
 
     # Set up the convolution instructions
@@ -138,14 +124,15 @@ if __name__ == '__main__':
         # could try and make an actual merger plot. go through each key, sum the values
         yield_locations = output_hdf5file['output_data/example/conv_output/convolution_results/']
         merger_ax_lookbacks = np.zeros_like(list(yield_locations.keys()))
-        merger_fig, merger_ax = plt.subplots(1, 1)
+        merger_fig, merger_ax = plt.subplots(1, 1, figsize=(10,10))
         merger_ax_rates = np.zeros_like(merger_ax_lookbacks)
         for r, k in enumerate(yield_locations.keys()):
             # get number
             units = u.Quantity(k).unit
-            time = u.Quantity(k).value
-            merger_ax_lookbacks[r] = time
+            t = u.Quantity(k).value
+            merger_ax_lookbacks[r] = t
             merger_ax_rates[r] = np.sum(yield_locations[k]['yield'][()])
+            print(f'lookback: {time}, sum: {merger_ax_rates[r]}')
             # maybe we have to reweight the counts
             # yield_in_bin = yield_locations[k]['yield'][()]
             # counts, _ = np.histogram(yield_in_bin, weights=dco_mixture_weight)
@@ -156,9 +143,26 @@ if __name__ == '__main__':
             #     density=True
             # )
         # sort these because they don't have to be in order
+        merger_ax_lookbacks = merger_ax_lookbacks.astype(float)
         time_order = np.argsort(merger_ax_lookbacks)
         merger_ax.plot(
-            merger_ax_lookbacks[time_order], #TODO: make unit more robust
+            np.round(merger_ax_lookbacks[time_order],2), #TODO: make unit more robust
             merger_ax_rates[time_order]
         )
+        merger_ax.set_xlabel('Lookback time [Gyr]')
+        merger_ax.set_ylabel('Yield')
         merger_fig.savefig('merger rates.png')
+
+    axis_dict = plot_sfr_dict(
+    high_res_sfr_dict,
+    time_type="redshift",
+    metallicity_string="logZ",
+    metallicity_distribution_multiply_by_metallicity_bin_sizes=False,
+    metallicity_distribution_multiply_by_sfr=False,
+    metallicity_distribution_scale="log10",
+    metallicity_distribution_cmap=copy.copy(plt.cm.viridis),
+    return_axis_dict=True,
+    figsize=(8,8),
+    fontsize=12,
+    )
+    axis_dict['fig'].savefig('./sfr.png')

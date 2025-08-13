@@ -79,7 +79,7 @@ def get_formation_efficiency(filepath):
     # weights = compasdata.weight
 
     fig, ax = plt.subplots(1, 1)
-    ax.hist(delayTimes)
+    ax.hist(delayTimes) #TODO: add weights
     ax.set_xlabel('Delay time [Myr]')
     ax.set_ylabel('Weighted rate in COMPAS')
     fig.savefig('./delaytimes.png')
@@ -97,13 +97,13 @@ def get_formation_efficiency(filepath):
     metallicity_dcos = np.log10(metallicities[dco_locs])
     total_bins = 50
 
-    eff_ax.hist(
-        metallicity_dcos/total_mass_evolved_compas,
-        weights=mixture_weights_system_params[dco_locs],
-        bins=total_bins,
-        density=True,
-        label='Density histogram'
-    )
+    # eff_ax.hist(
+    #     metallicity_dcos/total_mass_evolved_compas,
+    #     weights=mixture_weights_system_params[dco_locs],
+    #     bins=total_bins,
+    #     density=True,
+    #     label='Density histogram'
+    # )
 
     dNdco, bins = np.histogram(
         metallicity_dcos,
@@ -118,20 +118,18 @@ def get_formation_efficiency(filepath):
 
     eff_ax.plot(
         bins[:-1],
-        dNdco/total_mass_evolved_compas,
+        dNdco*np.sum(mixture_weights_system_params[dco_locs])/total_mass_evolved_compas,
         label='np histo'
     )
 
+    # eff_ax.plot(
+    #     bins[:-1], metallicitykde(bins[:-1])/total_mass_evolved_compas,
+    #     label='KDE plot'
+    #     # label=f'(1) Type {stellar_types_dictionary[type_index]} ({detector})'
+    # )
     eff_ax.plot(
-        bins[:-1], metallicitykde(bins[:-1])/total_mass_evolved_compas,
-        label='KDE plot'
-        # label=f'(1) Type {stellar_types_dictionary[type_index]} ({detector})'
-    )
-    eff_ax.fill_between(
         bins[:-1],
-        metallicitykde(bins[:-1])/total_mass_evolved_compas,
-        interpolate=True,
-        alpha=0.3
+        metallicitykde(bins[:-1])*np.sum(mixture_weights_system_params[dco_locs])/total_mass_evolved_compas
     )
 
     eff_ax.set_yscale('log')
