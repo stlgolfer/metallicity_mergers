@@ -34,7 +34,7 @@ def analytical_star_forming_mass_per_binary_using_kroupa_imf(
     m_rep = (1/fint) * m_avg * (1.5 + (1-fbin)/fbin)
     return m_rep
 
-def get_formation_efficiency(filepath):
+def get_formation_efficiency(filepath, types='all'):
 # get binary fraction
     fdata = h5.File(filepath)
     dco_seeds = fdata['BSE_Double_Compact_Objects']['SEED'][()]
@@ -72,7 +72,7 @@ def get_formation_efficiency(filepath):
     compasdata = COMPASData(
         path=filepath
     )
-    compasdata.setCOMPASDCOmask(types='all', withinHubbleTime=True)
+    compasdata.setCOMPASDCOmask(types=types, withinHubbleTime=True)
     compasdata.setCOMPASData()
 
     delayTimes = compasdata.delayTimes
@@ -87,7 +87,7 @@ def get_formation_efficiency(filepath):
     # now we'd like to plot the formation efficiency
     # there is a function to do this in compas, though it will literally iterate through each
 
-    dco_locs = np.isin(all_seeds, dco_seeds) # TODO: need to mask with dcomask
+    dco_locs = np.isin(all_seeds, dco_seeds[compasdata.DCOmask]) # TODO: need to mask with dcomask
 
     # going to try the weights method Floor had suggested
     # first get the metallicities of all the dcos
@@ -133,7 +133,7 @@ def get_formation_efficiency(filepath):
     )
 
     eff_ax.set_yscale('log')
-    eff_ax.set_xlabel('Log10(Z_dco / Zsun)')
+    eff_ax.set_xlabel('log10(Z_dco)')
     eff_ax.set_ylabel('R_form 1/M0')
     # eff_ax.set_ylim(min(_), 1)
     eff_ax.set_title('Formation eff. up to constant factor')
