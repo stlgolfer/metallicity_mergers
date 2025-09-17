@@ -139,7 +139,7 @@ def get_formation_efficiency(filepath, types='all'):
     eff_ax.set_title('Formation eff. up to constant factor')
     eff_ax.legend()
     eff_fig.savefig('./formation_efficiency.png')
-    return dNdco/total_mass_evolved_compas, bins, compasdata
+    return dNdco*np.sum(mixture_weights_system_params[dco_locs])/total_mass_evolved_compas, bins, compasdata
 if __name__ == '__main__':
     get_formation_efficiency('/Volumes/Elements/Boesky_sims.h5')
     
