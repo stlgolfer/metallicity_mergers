@@ -79,9 +79,12 @@ def get_formation_efficiency(filepath, types='all'):
     # weights = compasdata.weight
 
     fig, ax = plt.subplots(1, 1)
-    ax.hist(delayTimes) #TODO: add weights
+    ax.hist(
+        delayTimes,
+        density=True
+    ) #TODO: add weights
     ax.set_xlabel('Delay time [Myr]')
-    ax.set_ylabel('Weighted rate in COMPAS')
+    ax.set_ylabel('Unweighted Count Density')
     fig.savefig('./delaytimes.png')
 
     # now we'd like to plot the formation efficiency
@@ -116,11 +119,11 @@ def get_formation_efficiency(filepath, types='all'):
         weights=mixture_weights_system_params[dco_locs].flatten()
     )
 
-    eff_ax.plot(
-        bins[:-1],
-        dNdco*np.sum(mixture_weights_system_params[dco_locs])/total_mass_evolved_compas,
-        label='np histo'
-    )
+    # eff_ax.plot(
+    #     bins[:-1],
+    #     dNdco*np.sum(mixture_weights_system_params[dco_locs])/total_mass_evolved_compas,
+    #     label='np histo'
+    # )
 
     # eff_ax.plot(
     #     bins[:-1], metallicitykde(bins[:-1])/total_mass_evolved_compas,
@@ -133,10 +136,10 @@ def get_formation_efficiency(filepath, types='all'):
     )
 
     eff_ax.set_yscale('log')
-    eff_ax.set_xlabel('log10(Z_dco)')
-    eff_ax.set_ylabel('R_form 1/M0')
+    eff_ax.set_xlabel(r'$\log_{10}(Z_i)$')
+    eff_ax.set_ylabel(r'$\eta~1/M_\odot$')
     # eff_ax.set_ylim(min(_), 1)
-    eff_ax.set_title('Formation eff. up to constant factor')
+    eff_ax.set_title('Formation eff.')
     eff_ax.legend()
     eff_fig.savefig('./formation_efficiency.png')
     return dNdco*np.sum(mixture_weights_system_params[dco_locs])/total_mass_evolved_compas, bins, compasdata
