@@ -78,19 +78,30 @@ def get_formation_efficiency(filepath, types='all'):
     delayTimes = compasdata.delayTimes
     # weights = compasdata.weight
 
-    fig, ax = plt.subplots(1, 1)
-    ax.hist(
-        delayTimes,
-        density=True
-    ) #TODO: add weights
-    ax.set_xlabel('Delay time [Myr]')
-    ax.set_ylabel('Unweighted Count Density')
-    fig.savefig('./delaytimes.png')
-
     # now we'd like to plot the formation efficiency
     # there is a function to do this in compas, though it will literally iterate through each
 
     dco_locs = np.isin(all_seeds, dco_seeds[compasdata.DCOmask]) # TODO: need to mask with dcomask
+
+    fig, ax = plt.subplots(1, 1)
+    _, td_bins = np.histogram(
+        delayTimes,
+        density=True,
+        weights=mixture_weights_system_params[dco_locs]
+    ) #TODO: add weights
+
+    delay_time_kde = stats.gaussian_kde(
+        delayTimes.flatten(),
+        weights=mixture_weights_system_params[dco_locs].flatten()
+    )
+    
+    td_bin_midpoints = (td_bins[1:]+td_bins[:-1])/2
+    ax.plot(td_bin_midpoints, delay_time_kde(td_bin_midpoints))
+    ax.set_xlabel('Delay time [Myr]')
+    ax.set_ylabel('Number Density')
+    fig.tight_layout()
+    fig.savefig('./delaytimes.png')
+    assert 0
 
     # going to try the weights method Floor had suggested
     # first get the metallicities of all the dcos
@@ -144,5 +155,5 @@ def get_formation_efficiency(filepath, types='all'):
     eff_fig.savefig('./formation_efficiency.png')
     return dNdco*np.sum(mixture_weights_system_params[dco_locs])/total_mass_evolved_compas, bins, compasdata
 if __name__ == '__main__':
-    get_formation_efficiency('/Volumes/Elements/Boesky_sims.h5')
+    get_formation_efficiency('/Volumes/Elements/Boesky_sims.h5', types='BHNS')
     
