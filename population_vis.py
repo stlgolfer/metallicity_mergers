@@ -101,7 +101,7 @@ def get_formation_efficiency(filepath, types='all'):
     ax.set_ylabel('Number Density')
     fig.tight_layout()
     fig.savefig('./delaytimes.png')
-    assert 0
+    # assert 0
 
     # going to try the weights method Floor had suggested
     # first get the metallicities of all the dcos
