@@ -89,7 +89,12 @@ def get_formation_efficiency(filepath, types='all', lieke_td_plot=False):
         delayTimes,
         density=False,
         weights=mixture_weights_system_params[dco_locs]
-    ) #TODO: add weights
+    )
+
+    td_histo_unweighted, _ = np.histogram(
+        delayTimes,
+        density=False
+    )
 
     delay_time_kde = stats.gaussian_kde(
         delayTimes.flatten(),
@@ -98,9 +103,11 @@ def get_formation_efficiency(filepath, types='all', lieke_td_plot=False):
 
     td_bin_midpoints = (td_bins[1:]+td_bins[:-1])/2
     # ax.plot(td_bin_midpoints, delay_time_kde(td_bin_midpoints))
-    ax.plot(td_bin_midpoints, td_histo)
+    ax.plot(td_bin_midpoints, td_histo, label='Weighted')
+    ax.plot(td_bin_midpoints, td_histo_unweighted, label='Unweighted')
     ax.set_xlabel('Delay time [Myr]')
-    ax.set_ylabel('Number Density')
+    ax.set_ylabel('Number')
+    ax.legend()
     fig.tight_layout()
     fig.savefig('./delaytimes.png')
     # assert 0
