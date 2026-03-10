@@ -141,9 +141,10 @@ def get_formation_efficiency(filepath, types='all'):
     #     label='KDE plot'
     #     # label=f'(1) Type {stellar_types_dictionary[type_index]} ({detector})'
     # )
+    bin_centers = (bins[:-1]+bins[1:])/2
     eff_ax.plot(
-        bins[:-1],
-        metallicitykde(bins[:-1])*np.sum(mixture_weights_system_params[dco_locs])/total_mass_evolved_compas
+        bin_centers,
+        metallicitykde([bin_centers])*np.sum(mixture_weights_system_params[dco_locs])/(total_mass_evolved_compas) # divide by dlogZ?
     )
 
     eff_ax.set_yscale('log')
