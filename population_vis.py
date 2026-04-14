@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from compas_python_utils.cosmic_integration.ClassCOMPAS import COMPASData
 from tqdm import tqdm
 from scipy import stats
+from astropy.cosmology import Planck13, z_at_value
 
 # From floor
 def analytical_star_forming_mass_per_binary_using_kroupa_imf(
@@ -34,7 +35,7 @@ def analytical_star_forming_mass_per_binary_using_kroupa_imf(
     m_rep = (1/fint) * m_avg * (1.5 + (1-fbin)/fbin)
     return m_rep
 
-def get_formation_efficiency(filepath, types='all'):
+def get_formation_efficiency(filepath, types='all', lieke_td_plot=False):
 # get binary fraction
     fdata = h5.File(filepath)
     dco_seeds = fdata['BSE_Double_Compact_Objects']['SEED'][()]
@@ -78,19 +79,38 @@ def get_formation_efficiency(filepath, types='all'):
     delayTimes = compasdata.delayTimes
     # weights = compasdata.weight
 
-    fig, ax = plt.subplots(1, 1)
-    ax.hist(
-        delayTimes,
-        density=True
-    ) #TODO: add weights
-    ax.set_xlabel('Delay time [Myr]')
-    ax.set_ylabel('Unweighted Count Density')
-    fig.savefig('./delaytimes.png')
-
     # now we'd like to plot the formation efficiency
     # there is a function to do this in compas, though it will literally iterate through each
 
     dco_locs = np.isin(all_seeds, dco_seeds[compasdata.DCOmask]) # TODO: need to mask with dcomask
+
+    fig, ax = plt.subplots(1, 1)
+    td_histo, td_bins = np.histogram(
+        delayTimes,
+        density=False,
+        weights=mixture_weights_system_params[dco_locs]
+    )
+
+    td_histo_unweighted, _ = np.histogram(
+        delayTimes,
+        density=False
+    )
+
+    delay_time_kde = stats.gaussian_kde(
+        delayTimes.flatten(),
+        weights=mixture_weights_system_params[dco_locs].flatten()
+    )
+
+    td_bin_midpoints = (td_bins[1:]+td_bins[:-1])/2
+    # ax.plot(td_bin_midpoints, delay_time_kde(td_bin_midpoints))
+    ax.plot(td_bin_midpoints, td_histo, label='Weighted')
+    ax.plot(td_bin_midpoints, td_histo_unweighted, label='Unweighted')
+    ax.set_xlabel('Delay time [Myr]')
+    ax.set_ylabel('Number')
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig('./delaytimes.png')
+    # assert 0
 
     # going to try the weights method Floor had suggested
     # first get the metallicities of all the dcos
@@ -130,19 +150,54 @@ def get_formation_efficiency(filepath, types='all'):
     #     label='KDE plot'
     #     # label=f'(1) Type {stellar_types_dictionary[type_index]} ({detector})'
     # )
+    bin_centers = (bins[:-1]+bins[1:])/2
+    # eff_ax.plot(
+    #     bin_centers,
+    #     metallicitykde([bin_centers])*np.sum(mixture_weights_system_params[dco_locs])/(total_mass_evolved_compas) # divide by dlogZ?
+    # )
+    dlogZ = np.diff(bin_centers)[0]
     eff_ax.plot(
-        bins[:-1],
-        metallicitykde(bins[:-1])*np.sum(mixture_weights_system_params[dco_locs])/total_mass_evolved_compas
+        bin_centers,
+        dNdco*np.sum(mixture_weights_system_params[dco_locs])/(total_mass_evolved_compas*dlogZ)
     )
+    for b in bin_centers:
+        eff_ax.axvline(b, color='red')
 
     eff_ax.set_yscale('log')
     eff_ax.set_xlabel(r'$\log_{10}(Z_i)$')
-    eff_ax.set_ylabel(r'$\eta~1/M_\odot$')
-    # eff_ax.set_ylim(min(_), 1)
+    eff_ax.set_ylabel(r'$\eta~1/{M_\odot d\log Z_i}$')
+    eff_ax.set_ylim(10e-9, 10e-4)
     eff_ax.set_title('Formation eff.')
     eff_ax.legend()
+    eff_fig.show()
     eff_fig.savefig('./formation_efficiency.png')
-    return dNdco*np.sum(mixture_weights_system_params[dco_locs])/total_mass_evolved_compas, bins, compasdata
+    return dNdco*np.sum(mixture_weights_system_params[dco_locs])/(total_mass_evolved_compas*dlogZ), bins, compasdata
 if __name__ == '__main__':
-    get_formation_efficiency('/Volumes/Elements/Boesky_sims.h5')
+    # want to compare the delay times with lieke's paper
+    get_formation_efficiency('/Volumes/Elements/Boesky_sims.h5', types='BHNS')
+    # plot lieke's delay times
+    # lieke_filepath = '/Volumes/Elements/lieke_2023_compas/COMPAS_Output_wWeights.h5' # actually these are all just BBHs
+    # fdata = h5.File(lieke_filepath)
+    # dco_mixture_weights = fdata['BSE_Double_Compact_Objects']['mixture_weight'][()]
+
+    # lieke_compasdata = COMPASData(
+    #     path=lieke_filepath
+    # )
+    # lieke_compasdata.setCOMPASDCOmask(types='BHNS', withinHubbleTime=True)
+    # lieke_compasdata.setCOMPASData()
+    # fdata = h5.File(lieke_filepath)
+
+    # all_seeds = fdata['BSE_System_Parameters']['SEED'][()]
+    # dco_seeds = fdata['BSE_Double_Compact_Objects']['SEED'][()]
+    # dco_locs = np.isin(all_seeds, dco_seeds[lieke_compasdata.DCOmask])
+    # lieke_delayTimes = lieke_compasdata.delayTimes
+    # histo, bins = np.histogram(
+    #     lieke_delayTimes,
+    #     density=False,
+    #     weights=dco_mixture_weights[lieke_compasdata.DCOmask]
+    # )
+    # td_bin_midpoints = (bins[1:]+bins[:-1])/2
+    # plt.figure()
+    # plt.plot(td_bin_midpoints, histo)
+    # plt.savefig('./lieke_tds.png')
     
