@@ -174,7 +174,7 @@ def get_formation_efficiency(filepath, types='all', lieke_td_plot=False):
     return dNdco*np.sum(mixture_weights_system_params[dco_locs])/(total_mass_evolved_compas*dlogZ), bins, compasdata
 if __name__ == '__main__':
     # want to compare the delay times with lieke's paper
-    get_formation_efficiency('/Volumes/Elements/Boesky_sims.h5', types='BBH')
+    get_formation_efficiency('/Volumes/Elements/Boesky_sims.h5', types='BHNS')
     # plot lieke's delay times
     # lieke_filepath = '/Volumes/Elements/lieke_2023_compas/COMPAS_Output_wWeights.h5' # actually these are all just BBHs
     # fdata = h5.File(lieke_filepath)
