@@ -156,9 +156,10 @@ def get_formation_efficiency(filepath, types='all', lieke_td_plot=False):
     #     metallicitykde([bin_centers])*np.sum(mixture_weights_system_params[dco_locs])/(total_mass_evolved_compas) # divide by dlogZ?
     # )
     dlogZ = np.diff(bin_centers)[0]
+    plot_line = dNdco*np.sum(mixture_weights_system_params[dco_locs])/(total_mass_evolved_compas*dlogZ)
     eff_ax.plot(
         bin_centers,
-        dNdco*np.sum(mixture_weights_system_params[dco_locs])/(total_mass_evolved_compas*dlogZ)
+        plot_line
     )
     for b in bin_centers:
         eff_ax.axvline(b, color='red')
@@ -171,7 +172,7 @@ def get_formation_efficiency(filepath, types='all', lieke_td_plot=False):
     eff_ax.legend()
     eff_fig.show()
     eff_fig.savefig('./formation_efficiency.png')
-    return dNdco*np.sum(mixture_weights_system_params[dco_locs])/(total_mass_evolved_compas*dlogZ), bins, compasdata
+    return plot_line, bins, compasdata
 if __name__ == '__main__':
     # want to compare the delay times with lieke's paper
     get_formation_efficiency('/Volumes/Elements/Boesky_sims.h5', types='BHNS')
