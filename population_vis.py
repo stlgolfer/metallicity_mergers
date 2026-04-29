@@ -103,7 +103,7 @@ def get_formation_efficiency(filepath, types='all', lieke_td_plot=False):
 
     td_bin_midpoints = (td_bins[1:]+td_bins[:-1])/2
     # ax.plot(td_bin_midpoints, delay_time_kde(td_bin_midpoints))
-    ax.plot(td_bin_midpoints, td_histo, label='Weighted')
+    # ax.plot(td_bin_midpoints, td_histo, label='Weighted')
     ax.plot(td_bin_midpoints, td_histo_unweighted, label='Unweighted')
     ax.set_xlabel('Delay time [Myr]')
     ax.set_ylabel('Number')
