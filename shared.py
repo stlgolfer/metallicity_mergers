@@ -2,6 +2,7 @@ import h5py
 from syntheticstellarpopconvolve.general_functions import generate_boilerplate_outputfile, extract_unit_dict, temp_dir
 import astropy.units as u
 import numpy as np
+import os
 
 def plot_merger_rate_from_hdf_file(fname, groupname, dco_metallicities):
     with h5py.File(
@@ -85,3 +86,85 @@ def plot_merger_rate_from_hdf_file(fname, groupname, dco_metallicities):
                 'y_units': y_axis_units,
                 'all_weights': all_weights
             }
+    
+# loading the snr weights is computationally expensive
+def load_snr_data(snr_file):
+    snrs = {}
+    with h5py.File(snr_file, 'r') as f:
+        for key in f.keys():
+            snrs[key] = np.array(f[key][:]).astype(np.float32)
+    return snrs
+
+
+# as a first pass, let's also do an SNR cut at each redshift
+# so first get the redshifts (from the files themselves)
+SNRsdir = '/Volumes/Elements/results_SNR'
+# source_types = ['BBH', 'BNS', 'NSBH'] note that NSBH is backwards from BHNS, so will need to convert
+Cat_base_name = 'SNR_Boesky_fullcat_'
+z_bins = np.load('/Volumes/Elements/old_snr/data/redshift_bins_of_interest.npy')
+
+def get_all_snr_weights(dets, snr_cut, dco_metallicities, types):
+    # detector = 'KAGRA'
+    # snr_cut = 1
+    # for this one, we can rescale the count by finding how many objects make the cut and dividing by the total number of systems (not weights!)
+    # snr_weights = np.zeros_like(fiducial_plotting_data['redshifts'])
+    # this is probably a bad idea for RAM, but let's try a giant array that is per-system
+    all_snr_weights = np.zeros((len(z_bins), len(dco_metallicities)))
+
+    # have to iterate
+    for i, z in enumerate(z_bins):
+        zuse = z
+        snrs_at_z = load_snr_data(os.path.join(SNRsdir, Cat_base_name + ('NSBH' if types == 'BHNS' else types) + f'_z{zuse:.2f}' + '_allDetectors.h5'))
+        # here is where we need to gather each detector
+        for d in dets:
+            all_snr_weights[i, :] = np.power(snrs_at_z[d], 2) # sum quadrature
+        all_snr_weights[i, :] = np.sqrt(all_snr_weights[i, :])
+        # surviving = snrs_at_z[detector][np.where(snrs_at_z[detector] > snr_cut)[0]]
+        # total = len(snrs_at_z[detector])
+
+        # snrs_at_z[detector][snrs_at_z[detector] < snr_cut] = 0
+        # snr_weights[i] = len(surviving)/total
+
+        # print(len(surviving)/total)
+
+        # store all weights
+        # all_snr_weights[i, :] = snrs_at_z[detector]
+        # print(snr_weights[i])
+    # apply snr cut to all elements
+    cut_indices = np.where(all_snr_weights > snr_cut) # do one overall cut
+    all_snr_weights[:, :] = 0 # then we just want to count the ones that made the cut
+    all_snr_weights[cut_indices] = 1 # zero out the systems that don't have that
+    # print(all_snr_weights)
+    return all_snr_weights
+# since we're going to do only one system at a time, this is a list of the detectors in the network. will eventually make this into a class of some sort or maybe run configuration
+networks = {
+    # 'ET': {
+    #     'array': [
+    #         'ETS_0',
+    #         'ETS_1',
+    #         'ETS_2'
+    #     ],
+    #     'snr': 1
+    # },
+    'ETS': {
+        'array': ['ETS'],
+        'snr': 1
+    },
+    'ET_CE': {
+        'array': ['ETS', 'CE1Id'],
+        'snr': 8
+    },
+    'O4': {
+        'array': ['H1_O4a', 'L1_O4a', 'Virgo_O4a'],
+        'snr': 8
+    },
+    'O5': {
+        'array': [
+            'H1_postO5',
+            'KAGRA_O5',
+            'L1_O5',
+            'Virgo_O5'
+        ],
+        'snr': 8
+    }
+}
