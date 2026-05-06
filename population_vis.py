@@ -102,6 +102,11 @@ def get_formation_efficiency(filepath, types='all', lieke_td_plot=False):
     )
 
     td_bin_midpoints = (td_bins[1:]+td_bins[:-1])/2
+
+    # number_fig, number_ax = plt.subplots(1,1)
+    # number_ax.plot(td_bin_midpoints, number_ax)
+    # number_fig.savefig('./number_a')
+
     # ax.plot(td_bin_midpoints, delay_time_kde(td_bin_midpoints))
     # ax.plot(td_bin_midpoints, td_histo, label='Weighted')
     ax.plot(td_bin_midpoints, td_histo_unweighted, label='Unweighted')
@@ -156,7 +161,9 @@ def get_formation_efficiency(filepath, types='all', lieke_td_plot=False):
     #     metallicitykde([bin_centers])*np.sum(mixture_weights_system_params[dco_locs])/(total_mass_evolved_compas) # divide by dlogZ?
     # )
     dlogZ = np.diff(bin_centers)[0]
-    plot_line = dNdco*np.sum(mixture_weights_system_params[dco_locs]*dlogZ)/(total_mass_evolved_compas)
+    plot_line = dNdco*np.sum(mixture_weights_system_params[dco_locs])/(total_mass_evolved_compas*dlogZ)
+    # plot_line = (dNdco)/(total_mass_evolved_compas)
+
     eff_ax.plot(
         bin_centers,
         plot_line
@@ -166,7 +173,7 @@ def get_formation_efficiency(filepath, types='all', lieke_td_plot=False):
 
     eff_ax.set_yscale('log')
     eff_ax.set_xlabel(r'$\log_{10}(Z_i)$')
-    eff_ax.set_ylabel(r'$\eta~1/{M_\odot}\times d\log Z_i$')
+    eff_ax.set_ylabel(r'$\eta~1/{M_\odot}$') #\times d\log Z_i
     eff_ax.set_ylim(10e-9, 10e-4)
     eff_ax.set_title('Formation eff.')
     eff_ax.legend()
