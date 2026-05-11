@@ -86,6 +86,55 @@ def plot_merger_rate_from_hdf_file(fname, groupname, dco_metallicities):
                 'y_units': y_axis_units,
                 'all_weights': all_weights
             }
+
+
+def fci_plot_merger_rate_from_hdf_file(fname, groupname, dco_metallicities):
+    with h5py.File(
+            fname, "r"
+        ) as output_hdf5file:
+            # could try and make an actual merger plot. go through each key, sum the values
+            yield_locations = output_hdf5file[groupname] # assume we're in 'Rates...'
+            
+            merger_ax_redshift_edges = np.sort(yield_locations['redshifts'][()].astype(float))
+            print(len(merger_ax_redshift_edges))
+            # for each bin, we want a rate vs redshift
+            # for r, k in enumerate(yield_locations.keys()):
+                # get number
+                # t = u.Quantity(k).value
+                # if u.Quantity(k) >= u.Quantity('14 Gyr'):
+                #     warnings.warn('Skipping a data point that was older than the universe..')
+                #     break
+                # merger_ax_redshifts.append(t)
+            # at this point we have the lookback times available that have also been filtered for unphysical time
+            # now we can sort the times
+            merger_ax_redshift_edges = np.sort(np.array(merger_ax_redshift_edges).astype(float))
+            merger_rate_number_met_bins = 5 # keep this consistent for both metallicity and lookback
+            merger_metallicity_bins = np.linspace(-4, -1.5, merger_rate_number_met_bins)
+            merger_rates_binned_by_metallicities = np.zeros((len(merger_metallicity_bins), len(merger_ax_redshift_edges)))
+            # now the times are sorted, go through each lookback time, digitize on metallicity
+            m_bin_indices = np.digitize(np.log10(dco_metallicities), merger_metallicity_bins)
+
+            # we also want to get the rates_per_system so we can re-weight later on
+            all_weights = yield_locations['merger_rate'] #np.zeros((len(dco_metallicities), len(merger_ax_redshifts)))
+
+            for j in range(all_weights.shape[1]):
+                # print(j)
+                # yields = yield_locations[u.Quantity(lo).to_string()]['yield'][()]
+                # all_weights[:, j] = yields
+                for bin_index in range(len(merger_metallicity_bins)):
+                    # go through each bin, sum yields at the locations where the bin is equal
+                    
+                    bin_query = np.where(m_bin_indices == bin_index+1) 
+                    merger_rates_binned_by_metallicities[bin_index][j] = np.sum(
+                        all_weights[:, j][bin_query]
+                    ) # sum over systems
+            merger_metallicity_bins = np.round(merger_metallicity_bins,2)
+            return {
+                'merger_rates_binned_by_metallicities': merger_rates_binned_by_metallicities,
+                'merger_metallicity_bins': merger_metallicity_bins,
+                'redshifts': np.round(merger_ax_redshift_edges,2),
+                'all_weights': all_weights
+            }
     
 # loading the snr weights is computationally expensive
 def load_snr_data(snr_file):
