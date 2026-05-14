@@ -3,6 +3,7 @@ from syntheticstellarpopconvolve.general_functions import generate_boilerplate_o
 import astropy.units as u
 import numpy as np
 import os
+from tqdm.notebook import tqdm
 
 def plot_merger_rate_from_hdf_file(fname, groupname, dco_metallicities):
     with h5py.File(
@@ -161,7 +162,7 @@ def get_all_snr_weights(dets, snr_cut, dco_metallicities, types):
     all_snr_weights = np.zeros((len(z_bins), len(dco_metallicities)))
 
     # have to iterate
-    for i, z in enumerate(z_bins):
+    for i, z in tqdm(enumerate(z_bins), leave=True, desc='Z bins'):
         zuse = z
         snrs_at_z = load_snr_data(os.path.join(SNRsdir, Cat_base_name + ('NSBH' if types == 'BHNS' else types) + f'_z{zuse:.2f}' + '_allDetectors.h5'))
         # here is where we need to gather each detector
