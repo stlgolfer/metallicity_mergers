@@ -127,14 +127,14 @@ def fci_plot_merger_rate_from_hdf_file(fname, groupname, dco_metallicities):
                     
                     bin_query = np.where(m_bin_indices == bin_index+1) 
                     merger_rates_binned_by_metallicities[bin_index][j] = np.sum(
-                        all_weights[:, j][bin_query]
+                        all_weights[:, j][bin_query][()]
                     ) # sum over systems
             merger_metallicity_bins = np.round(merger_metallicity_bins,2)
             return {
                 'merger_rates_binned_by_metallicities': merger_rates_binned_by_metallicities,
                 'merger_metallicity_bins': merger_metallicity_bins,
                 'redshifts': np.round(merger_ax_redshift_edges,2),
-                'all_weights': all_weights
+                'all_weights': all_weights[()]
             }
     
 # loading the snr weights is computationally expensive

@@ -174,21 +174,21 @@ if __name__ == '__main__':
     fig, ax = plt.subplots(1, 1)
 
     def plot_pair(profile: RateProfile):
-        plot_up_to_redshift(
-            profile,
-            ax,
-            SensitivityProfile("CE",
-                            10, sensfile='detection_rateCE.txt'
-                            )
-        )
+        # plot_up_to_redshift(
+        #     profile,
+        #     ax,
+        #     SensitivityProfile("CE",
+        #                     10, sensfile='detection_rateCE.txt'
+        #                     )
+        # )
 
-        plot_up_to_redshift(
-            profile,
-            ax,
-            SensitivityProfile("design",
-                            1, sensfile='detection_ratedesign'
-                            )
-        )
+        # plot_up_to_redshift(
+        #     profile,
+        #     ax,
+        #     SensitivityProfile("design",
+        #                     1, sensfile='detection_ratedesign'
+        #                     )
+        # )
 
         plot_up_to_redshift(
             profile,

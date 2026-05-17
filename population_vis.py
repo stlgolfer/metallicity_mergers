@@ -161,7 +161,7 @@ def get_formation_efficiency(filepath, types='all', lieke_td_plot=False):
     #     metallicitykde([bin_centers])*np.sum(mixture_weights_system_params[dco_locs])/(total_mass_evolved_compas) # divide by dlogZ?
     # )
     dlogZ = np.diff(bin_centers)[0]
-    plot_line = dNdco*np.sum(mixture_weights_system_params[dco_locs])/(total_mass_evolved_compas*dlogZ)
+    plot_line = dNdco*np.sum(mixture_weights_system_params[dco_locs])/(total_mass_evolved_compas)
     # plot_line = (dNdco)/(total_mass_evolved_compas)
 
     eff_ax.plot(
