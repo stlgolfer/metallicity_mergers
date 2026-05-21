@@ -26,7 +26,7 @@ def combine_rates(rates, red_lefts, r_parity, jump):
     new_bin_indices = []
     j = z_loc
     # jump = 5 # number of bins
-    while j + 5 <= len(red_lefts):
+    while j + jump <= len(red_lefts):
         new_bin_indices.append(j)
         j += jump
     # manually add the last bin
@@ -38,14 +38,14 @@ def combine_rates(rates, red_lefts, r_parity, jump):
     print(new_red_lefts.shape)
     #hm, maybe we can grab a region, push to 3d by reshape, and then sum?
     # print(rates[np.newaxis, :, :].reshape(5,20,20).shape) eh, just iteratively for now
-    new_rates = np.zeros((len(red_lefts[new_bin_indices])-1, 20))
+    new_rates = np.zeros((len(red_lefts[new_bin_indices])-1, rates.shape[0]))
     for r in range(len(new_bin_indices) - 1):
         start = new_bin_indices[r]
         end = new_bin_indices[r+1]
         block_sum = np.sum(rates[:,start:end],axis=1)
         # print(block_sum.shape)
         # assert 0
-        new_rates[r,:] = block_sum
+        new_rates[r,:] = block_sum/jump
         # print(r)
     # print(new_rates)
     full_new_rates = np.concatenate((rates[:, :z_loc], new_rates.T), axis=1)
@@ -54,17 +54,43 @@ def combine_rates(rates, red_lefts, r_parity, jump):
     print(new_red_lefts.shape)
     return new_red_lefts, full_new_rates
 
+# def copy_group_all(f, source, dest, blacklist=[]):
+
+def clean_keys(f, blacklist):
+    for b in blacklist:
+        if b in f.keys():
+            del f[b]
+    # del fr[new_key]['merger_rate']
+    #     del fr[new_key]['redshifts']
+    #     if 'detection_ratedesign' in fr[new_key].keys():
+    #         del fr[new_key]
+
 if __name__ == '__main__':
     # create_dummy_file()
-    with h5.File('./dummy.h5', 'r+') as fr:
+    fname = '/Volumes/Elements/Boesky_alpha0.1beta0.5.h5'
+    with h5.File(fname, 'r+') as fr:
+        old_key = 'Rates_mu00.025_muz-0.052_alpha-1.88_sigma01.15_sigmaz0.0477_BBH_0.1_10.0'
         new_key = 'Rates_comb'
+
+        assert old_key in fr.keys(), f'Try these keys: {fr.keys()}'
+
         if new_key in fr.keys():
             del fr[new_key]
 
-        fr.create_group(new_key)
+        fr.copy(fr[old_key], fr, new_key)
+        # then delete these keys
+        clean_keys(fr[new_key], [
+            'merger_rate',
+            'redshifts',
+            'detection_ratedesign',
+            'merger_rate_z0'
+            ])
+        
+        print(fr[new_key].keys())
+        # fr.create_group(new_key) # but now key is already amde
         new_reds, new_rates = combine_rates(
-            fr['Rates']['merger_rate'][()],
-            fr['Rates']['redshifts'][()],
+            fr[old_key]['merger_rate'][()],
+            fr[old_key]['redshifts'][()],
             2, 5
         )
         fr[new_key].create_dataset('merger_rate', data=new_rates)
