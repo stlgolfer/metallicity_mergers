@@ -24,7 +24,7 @@ def combine_rates(rates, red_lefts, r_parity, jump):
 
     # hm, maybe get the indices manually
     new_bin_indices = []
-    j = z_loc
+    j = z_loc + jump # this is the step that adjusts the boundary
     # jump = 5 # number of bins
     while j + jump <= len(red_lefts):
         new_bin_indices.append(j)
