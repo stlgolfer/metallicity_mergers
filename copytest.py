@@ -45,9 +45,9 @@ def combine_rates(rates, red_lefts, r_parity, jump):
         block_sum = np.sum(rates[:,start:end],axis=1)
         # print(block_sum.shape)
         # assert 0
-        new_rates[r,:] = block_sum/jump
-        # print(r)
-    # print(new_rates)
+        new_rates[r,:] = rates[:, start]#block_sum/jump
+        # ah, don't do block sum, just downsample the intrinsic rate.
+        # this preserves units and still lowers the number of bins
     full_new_rates = np.concatenate((rates[:, :z_loc], new_rates.T), axis=1)
     # full_new_red_lefts = np.concatenate((red_lefts[:z_loc], new_red_lefts))
     print(full_new_rates.shape)
