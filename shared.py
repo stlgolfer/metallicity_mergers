@@ -186,6 +186,38 @@ def get_all_snr_weights(dets, snr_cut, dco_metallicities, types):
     all_snr_weights[cut_indices] = 1 # zero out the systems that don't have that
     # print(all_snr_weights)
     return all_snr_weights
+
+def new_get_all_snr_weights(snr_filepath, reds_filepath, det, snr_cut, dco_metallicities):
+    new_z_bins = np.load(reds_filepath).round(2)
+    all_snr_weights = np.zeros((len(new_z_bins), len(dco_metallicities)))
+    snr_file = h5py.File(snr_filepath, 'r')
+
+    # have to iterate
+    for i, z in tqdm(enumerate(new_z_bins), leave=True, desc='Z bins'):
+        #snrs_at_z = #load_snr_data(os.path.join(SNRsdir, Cat_base_name + ('NSBH' if types == 'BHNS' else types) + f'_z{zuse:.2f}' + '_allDetectors.h5'))
+        # here is where we need to gather each detector
+        # for d in dets:
+        #     all_snr_weights[i, :] = np.power(snrs_at_z[d], 2) # sum quadrature
+        all_snr_weights[i, :] = snr_file[f'z{z}'][det]#np.sqrt(all_snr_weights[i, :])
+        # surviving = snrs_at_z[detector][np.where(snrs_at_z[detector] > snr_cut)[0]]
+        # total = len(snrs_at_z[detector])
+
+        # snrs_at_z[detector][snrs_at_z[detector] < snr_cut] = 0
+        # snr_weights[i] = len(surviving)/total
+
+        # print(len(surviving)/total)
+
+        # store all weights
+        # all_snr_weights[i, :] = snrs_at_z[detector]
+        # print(snr_weights[i])
+    # apply snr cut to all elements
+    snr_file.close()
+    cut_indices = np.where(all_snr_weights > snr_cut) # do one overall cut
+    all_snr_weights[:, :] = 0 # then we just want to count the ones that made the cut
+    all_snr_weights[cut_indices] = 1 # zero out the systems that don't have that
+    # print(all_snr_weights)
+    return all_snr_weights
+
 # since we're going to do only one system at a time, this is a list of the detectors in the network. will eventually make this into a class of some sort or maybe run configuration
 networks = {
     # 'ET': {
