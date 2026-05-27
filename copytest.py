@@ -12,7 +12,7 @@ def create_dummy_file():
         # print(fw['test'][()])
         print(fw['Rates'].keys())
 
-def combine_rates(rates, red_lefts, r_parity, jump):
+def combine_rates(rates, red_lefts, r_parity, jump, downsample=True):
     # rates = np.random.randn(20, 100) # simulating 20 systems with 100 redshifts
     # red_lefts = np.linspace(0, 10, num=101) # needs to have 100+1 to simulate left bins
     print(rates.shape)
@@ -24,7 +24,7 @@ def combine_rates(rates, red_lefts, r_parity, jump):
 
     # hm, maybe get the indices manually
     new_bin_indices = []
-    j = z_loc + jump # this is the step that adjusts the boundary
+    j = z_loc #+ jump # this is the step that adjusts the boundary
     # jump = 5 # number of bins
     while j + jump <= len(red_lefts):
         new_bin_indices.append(j)
@@ -40,12 +40,17 @@ def combine_rates(rates, red_lefts, r_parity, jump):
     # print(rates[np.newaxis, :, :].reshape(5,20,20).shape) eh, just iteratively for now
     new_rates = np.zeros((len(red_lefts[new_bin_indices])-1, rates.shape[0]))
     for r in range(len(new_bin_indices) - 1):
-        start = new_bin_indices[r]
-        end = new_bin_indices[r+1]
-        block_sum = np.sum(rates[:,start:end],axis=1)
+        start = new_bin_indices[r] + np.floor(jump/2).astype(int)
+
+        if downsample:
+            new_rates[r,:] = rates[:, start]
+        else:
+            end = new_bin_indices[r+1]
+            block_sum = np.sum(rates[:,start:end],axis=1)
+            new_rates[r,:] = block_sum/jump
         # print(block_sum.shape)
         # assert 0
-        new_rates[r,:] = rates[:, start]#block_sum/jump
+        #block_sum/jump
         # ah, don't do block sum, just downsample the intrinsic rate.
         # this preserves units and still lowers the number of bins
     full_new_rates = np.concatenate((rates[:, :z_loc], new_rates.T), axis=1)
@@ -69,7 +74,7 @@ if __name__ == '__main__':
     # create_dummy_file()
     fname = '/Volumes/Elements/Boesky_alpha0.1beta0.5.h5'
     with h5.File(fname, 'r+') as fr:
-        species = 'BNS'
+        species = 'BHNS'
         old_key = f'Rates_mu00.025_muz-0.052_alpha-1.88_sigma01.15_sigmaz0.0477_{species}_0.1_10.0'
         new_key = f'Rates_{species}_mixed'
 
@@ -92,7 +97,7 @@ if __name__ == '__main__':
         new_reds, new_rates = combine_rates(
             fr[old_key]['merger_rate'][()],
             fr[old_key]['redshifts'][()],
-            2, 5
+            2, 5, True
         )
         fr[new_key].create_dataset('merger_rate', data=new_rates)
         fr[new_key].create_dataset('redshifts', data=new_reds)
