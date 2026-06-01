@@ -145,6 +145,13 @@ def load_snr_data(snr_file):
             snrs[key] = np.array(f[key][:]).astype(np.float32)
     return snrs
 
+def show_vlines(ax, locs, label=None):
+    for i in range(len(locs)):
+        l = locs[i]
+        if (label is not None) and i == 0:
+            ax.axvline(l, color='grey', linestyle='dashed', alpha=0.4, label=label)
+        else:
+            ax.axvline(l, color='grey', linestyle='dashed', alpha=0.4)    
 
 # as a first pass, let's also do an SNR cut at each redshift
 # so first get the redshifts (from the files themselves)
