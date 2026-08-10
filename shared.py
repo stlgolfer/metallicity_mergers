@@ -110,7 +110,11 @@ def fci_plot_merger_rate_from_hdf_file(fname, groupname, dco_metallicities):
             # now we can sort the times
             merger_ax_redshift_edges = np.sort(np.array(merger_ax_redshift_edges).astype(float))
             merger_rate_number_met_bins = 5 # keep this consistent for both metallicity and lookback
-            merger_metallicity_bins = np.linspace(-4, -1.5, merger_rate_number_met_bins)
+            merger_metallicity_bins = np.linspace(
+                np.log10(np.min(dco_metallicities)),
+                np.log10(np.max(dco_metallicities)),
+                merger_rate_number_met_bins
+            )
             merger_rates_binned_by_metallicities = np.zeros((len(merger_metallicity_bins), len(merger_ax_redshift_edges)))
             # now the times are sorted, go through each lookback time, digitize on metallicity
             m_bin_indices = np.digitize(np.log10(dco_metallicities), merger_metallicity_bins)
