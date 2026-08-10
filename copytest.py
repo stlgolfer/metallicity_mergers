@@ -74,10 +74,12 @@ if __name__ == '__main__':
     # create_dummy_file()
     fname = '/Volumes/Elements/Boesky_alpha0.1beta0.5.h5'
     with h5.File(fname, 'r+') as fr:
-        species = 'BHNS'
-        old_key = f'Rates_mu00.025_muz-0.049_alpha-1.778_sigma01.125_sigmaz0.048_{species}_0.1_10.0'
+        species = 'BBH'
+        alias = 'fiducial'
+
+        old_key = f'Rates_{alias}_{species}_0.1_10.0'
         
-        new_key = f'Rates_{species}_mixed'
+        new_key = f'{old_key}_mixed'
 
         assert old_key in fr.keys(), f'Try these keys: {fr.keys()}'
 
