@@ -75,7 +75,7 @@ if __name__ == '__main__':
     fname = '/Volumes/Elements/Boesky_alpha0.1beta0.5.h5'
     with h5.File(fname, 'r+') as fr:
         species = 'BBH'
-        alias = 'fiducial'
+        alias = 'max'
 
         old_key = f'Rates_{alias}_{species}_0.1_10.0'
         
